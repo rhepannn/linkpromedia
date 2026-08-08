@@ -2,14 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getArticleBySlug, getRelatedArticles, getPublishedArticles, getLiveUpdates, getVersiBahasa } from "@/lib/articles";
+import { getArticleBySlug, getRelatedArticles, getPublishedArticles, getVersiBahasa } from "@/lib/articles";
 import { getCategories } from "@/lib/categories";
 import { formatDate, formatDateTime, absoluteUrl, MIN_INDEXABLE_WORDS } from "@/lib/utils";
 import CategoryBadge from "@/components/ui/CategoryBadge";
 import ShareButtons from "@/components/ui/ShareButtons";
 import ArticleCard from "@/components/article/ArticleCard";
 import ReadingProgress from "@/components/article/ReadingProgress";
-import LiveUpdateTimeline from "@/components/article/LiveUpdateTimeline";
 import LanguageSwitcher from "@/components/article/LanguageSwitcher";
 import ArticleSummaryBox from "@/components/article/ArticleSummaryBox";
 import BookmarkButton from "@/components/article/BookmarkButton";
@@ -134,10 +133,9 @@ export default async function ArticlePage({ params }: Props) {
   const articleTagNames = article.tags?.map((t) => t.tag.name) ?? [];
   // Penghitung baca dinaikkan lewat AnalyticsTracker di browser, bukan di sini,
   // supaya halaman ini boleh disajikan dari cache.
-  const [relatedArticles, categories, liveUpdates] = await Promise.all([
-    getRelatedArticles(article.category.slug, slug, 4, articleTagNames),
+  const [relatedArticles, categories] = await Promise.all([
+    getRelatedArticles(article.title, article.excerpt ?? null, slug, 4, articleTagNames),
     getCategories(),
-    article.isLive ? getLiveUpdates(article.id) : Promise.resolve([]),
   ]);
   const articleUrl = absoluteUrl(`/berita/${slug}`);
 
@@ -219,7 +217,6 @@ export default async function ArticlePage({ params }: Props) {
             <FontSizeControl />
           </div>
 
-          {article.isLive && <LiveUpdateTimeline updates={liveUpdates} slug={slug} />}
 
           {/* Thumbnail */}
           {article.thumbnailUrl && (

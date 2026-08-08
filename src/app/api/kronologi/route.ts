@@ -6,15 +6,14 @@ export async function GET(req: NextRequest) {
     const offset = Math.max(Number(req.nextUrl.searchParams.get("offset")) || 0, 0);
     const limit = Math.min(Math.max(Number(req.nextUrl.searchParams.get("limit")) || 20, 1), 50);
     const typeParam = req.nextUrl.searchParams.get("type");
+    // "live" sengaja tetap DITERIMA lalu diperlakukan seperti "semua":
+    // fitur Artikel Live sudah dihapus (2026-08-08), tapi tab browser lama
+    // yang masih memuat filter Live tidak boleh tiba-tiba disambut error 400.
     if (typeParam && !["breaking", "live", "semua"].includes(typeParam)) {
       return NextResponse.json({ error: "Tipe filter tidak valid" }, { status: 400 });
     }
 
-    const typeFilter = typeParam === "breaking"
-      ? { isBreaking: true }
-      : typeParam === "live"
-      ? { isLive: true }
-      : {};
+    const typeFilter = typeParam === "breaking" ? { isBreaking: true } : {};
 
     const articles = await prisma.article.findMany({
       where: {
@@ -36,11 +35,9 @@ export async function GET(req: NextRequest) {
         excerpt: true,
         thumbnailUrl: true,
         isBreaking: true,
-        isLive: true,
         publishedAt: true,
         category: { select: { id: true, name: true, slug: true } },
         author: { select: { id: true, name: true } },
-        _count: { select: { liveUpdates: true } },
       },
     });
 
@@ -53,11 +50,9 @@ export async function GET(req: NextRequest) {
       thumbnailUrl: a.thumbnailUrl,
       publishedAt: a.publishedAt?.toISOString() ?? null,
       isBreaking: a.isBreaking,
-      isLive: a.isLive,
-      liveUpdateCount: a._count.liveUpdates,
       category: a.category,
       author: a.author,
-      type: a.isBreaking ? "breaking" as const : a.isLive ? "live" as const : "article" as const,
+      type: a.isBreaking ? ("breaking" as const) : ("article" as const),
     }));
 
     return NextResponse.json({

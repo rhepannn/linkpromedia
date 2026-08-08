@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@prisma/client";
+// Prisma diimpor sebagai NILAI (bukan type saja) karena Prisma.join dipakai
+// membangun daftar slug di query pg_trgm getRelatedArticles
+import { Prisma } from "@prisma/client";
 import type { Article, ArticleCard } from "@/types";
 
 const CARD_SELECT = {
@@ -12,7 +14,6 @@ const CARD_SELECT = {
   status: true,
   isBreaking: true,
   isEditorsPick: true,
-  isLive: true,
   viewCount: true,
   publishedAt: true,
   category: { select: { id: true, name: true, slug: true } },
@@ -335,7 +336,8 @@ export async function searchArticles(
  * Artikel dengan tag yang sama diprioritaskan; sisanya diisi dari kategori yang sama.
  */
 export async function getRelatedArticles(
-  categorySlug: string,
+  judul: string,
+  ringkasan: string | null,
   excludeSlug: string,
   limit = 4,
   tagNames: string[] = []
@@ -368,20 +370,61 @@ export async function getRelatedArticles(
 
   if (byTag.length >= limit) return byTag;
 
+  // Tingkat kedua: kemiripan ISI lewat pg_trgm (indeks GIN-nya sudah ada),
+  // LINTAS kategori. Dulu tingkat ini "kategori sama, terbaru dulu" — hasilnya
+  // artikel yang kebetulan sekategori tapi topiknya tak nyambung sama sekali
+  // ikut terpajang sebagai "terkait". Kemiripan judul+ringkasan jauh lebih
+  // jujur terhadap kata "terkait", dan artikel dari kategori lain yang
+  // membahas peristiwa sama kini ikut terjaring.
   const seen = new Set(byTag.map((a) => a.slug));
-  const byCategory = await prisma.article.findMany({
+  const teksAcuan = `${judul} ${ringkasan ?? ""}`.trim().slice(0, 500);
+
+  let bySimilarity: ArticleCard[] = [];
+  if (teksAcuan.length >= 10) {
+    // similarity() pg_trgm: 0..1. Ambang 0.05 sengaja rendah — judul berita
+    // pendek jarang mencetak skor tinggi; penyaring sebenarnya adalah ORDER BY.
+    const mirip = await prisma.$queryRaw<{ slug: string; skor: number }[]>`
+      SELECT a."slug",
+             GREATEST(similarity(a."title", ${teksAcuan}),
+                      similarity(COALESCE(a."excerpt", ''), ${teksAcuan})) AS skor
+      FROM "Article" a
+      WHERE (a."status" = 'PUBLISHED'
+             OR (a."status" = 'SCHEDULED' AND a."publishedAt" <= NOW()))
+        AND a."language" = 'id'
+        AND a."slug" NOT IN (${Prisma.join([excludeSlug, ...seen])})
+      ORDER BY skor DESC
+      LIMIT ${limit - byTag.length}
+    `;
+    const slugTerpilih = mirip.filter((m) => m.skor >= 0.05).map((m) => m.slug);
+    if (slugTerpilih.length > 0) {
+      const found = await prisma.article.findMany({
+        where: { slug: { in: slugTerpilih } },
+        select: CARD_SELECT,
+      });
+      const rank = new Map(slugTerpilih.map((s, i) => [s, i]));
+      bySimilarity = found.sort(
+        (a, b) => (rank.get(a.slug) ?? 0) - (rank.get(b.slug) ?? 0)
+      );
+    }
+  }
+
+  if (byTag.length + bySimilarity.length >= limit) {
+    return [...byTag, ...bySimilarity];
+  }
+
+  // Cadangan terakhir kalau kemiripan isi pun tidak cukup (mis. arsip masih
+  // kecil): artikel terbaru apa pun, supaya kolomnya tidak kosong.
+  const sudah = new Set([...seen, ...bySimilarity.map((a) => a.slug)]);
+  const terbaru = await prisma.article.findMany({
     where: {
-      AND: [
-        daftarPublikWhere(),
-        { category: { slug: categorySlug }, slug: { notIn: [excludeSlug, ...seen] } },
-      ],
+      AND: [daftarPublikWhere(), { slug: { notIn: [excludeSlug, ...sudah] } }],
     },
     orderBy: { publishedAt: "desc" },
-    take: limit - byTag.length,
+    take: limit - byTag.length - bySimilarity.length,
     select: CARD_SELECT,
   });
 
-  return [...byTag, ...byCategory];
+  return [...byTag, ...bySimilarity, ...terbaru];
 }
 
 /**
@@ -412,20 +455,7 @@ export async function getArticlesBySlugs(slugs: string[]): Promise<ArticleCard[]
   return articles.sort((a, b) => (order.get(a.slug) ?? 0) - (order.get(b.slug) ?? 0));
 }
 
-export interface LiveUpdateEntry {
-  id: string;
-  content: string;
-  createdAt: Date;
-  author: { name: string } | null;
-}
-
-/**
- * Ambil semua update kronologis sebuah artikel live, terbaru dulu
- */
-export async function getLiveUpdates(articleId: string): Promise<LiveUpdateEntry[]> {
-  return prisma.articleLiveUpdate.findMany({
-    where: { articleId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, content: true, createdAt: true, author: { select: { name: true } } },
-  });
-}
+/* Fitur Artikel Live dihapus 2026-08-08 (keputusan pemilik). Model
+   ArticleLiveUpdate sengaja DIBIARKAN di schema.prisma: menghapus kolom/tabel
+   di database produksi yang sudah live butuh migrasi destruktif, dan datanya
+   tidak mengganggu apa pun. */

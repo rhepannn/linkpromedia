@@ -83,6 +83,46 @@ export default function AiChatPanel({
   const [mengirim, setMengirim] = useState(false);
   const bawahRef = useRef<HTMLDivElement>(null);
 
+  // Riwayat obrolan bertahan selama tab browser hidup (sessionStorage) —
+  // tanpa ini, sekali pindah halaman seluruh percakapan lenyap dan chat
+  // terasa "tidak punya ingatan" padahal konteksnya dikirim ke server.
+  // Dipisah per tampilan: percakapan riset di halaman ChatBot jangan
+  // tercampur dengan percakapan penyuntingan di editor artikel.
+  // sessionStorage (bukan localStorage) supaya obrolan lama tidak muncul
+  // lagi berhari-hari kemudian di komputer redaksi yang dipakai bergantian.
+  const kunciRiwayat = `linkpromedia:chat:${halaman ? "halaman" : "editor"}`;
+
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(kunciRiwayat);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (Array.isArray(data)) setPesanList(data);
+      }
+    } catch {
+      /* riwayat korup — mulai kosong saja */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (pesanList.length === 0) return;
+    try {
+      window.sessionStorage.setItem(kunciRiwayat, JSON.stringify(pesanList));
+    } catch {
+      /* storage penuh — biarkan; riwayat memang bukan data penting */
+    }
+  }, [pesanList, kunciRiwayat]);
+
+  function bersihkanRiwayat() {
+    setPesanList([]);
+    try {
+      window.sessionStorage.removeItem(kunciRiwayat);
+    } catch {
+      /* abaikan */
+    }
+  }
+
   useEffect(() => {
     bawahRef.current?.scrollIntoView({ behavior: "smooth" });
     // "mengirim" ikut jadi dependency supaya gelembung "sedang mengetik"
@@ -170,17 +210,29 @@ export default function AiChatPanel({
         </p>
         </div>
 
-        {halaman && hrefKembali && (
-          <Link
-            href={hrefKembali}
-            className="flex-shrink-0 inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary-600 transition-colors"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Kembali ke Admin
-          </Link>
-        )}
+        <div className="flex-shrink-0 flex items-center gap-3">
+          {pesanList.length > 0 && (
+            <button
+              type="button"
+              onClick={bersihkanRiwayat}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+              title="Hapus seluruh percakapan ini"
+            >
+              Bersihkan riwayat
+            </button>
+          )}
+          {halaman && hrefKembali && (
+            <Link
+              href={hrefKembali}
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-primary-600 transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Kembali ke Admin
+            </Link>
+          )}
+        </div>
       </div>
       </div>
 
@@ -290,9 +342,10 @@ export default function AiChatPanel({
  * seperti kelanjutan percakapan, bukan status loading generik yang
  * terlepas dari alurnya.
  *
- * Kurang-gerak (prefers-reduced-motion) sudah ditangani secara global di
- * globals.css — animasinya otomatis dipercepat jadi nyaris statis di sana,
- * jadi tidak perlu penanganan khusus di sini.
+ * Memakai kelas .denyut-titik (globals.css), BUKAN animate-bounce: aturan
+ * kurangi-gerak global membekukan semua animasi Tailwind, dan titik yang
+ * beku terlihat seperti macet. Denyut opasitas dikecualikan secara eksplisit
+ * di sana karena pudar-memudar bukan gerak spasial pemicu vestibular.
  */
 function IndikatorMengetik() {
   return (
@@ -300,7 +353,7 @@ function IndikatorMengetik() {
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="w-1.5 h-1.5 rounded-full bg-gray-400 animate-bounce"
+          className="w-1.5 h-1.5 rounded-full bg-gray-400 denyut-titik"
           style={{ animationDelay: `${i * 0.15}s` }}
         />
       ))}
@@ -656,7 +709,7 @@ function HasilRenderer({
         ringkasan: string;
         jumlahMedia: number;
         jumlahBerita: number;
-        berita: { judul: string; sumber: string; url: string; ringkasan: string }[];
+        berita: { judul: string; sumber: string; url: string; ringkasan: string; gambar: string | null }[];
         sudahDiliput: boolean;
         artikelKita: { id: string; title: string }[];
       }[];
@@ -733,6 +786,25 @@ function HasilRenderer({
                   {t.jumlahMedia} media · {t.jumlahBerita} berita
                 </span>
               </div>
+              {(() => {
+                const thumb = t.berita.find((b) => b.gambar)?.gambar;
+                if (!thumb) return null;
+                return (
+                  /* Thumbnail resmi dari feed penerbit — pratinjau riset saja.
+                     <img> biasa (bukan next/image): domain CDN tiap media
+                     berbeda-beda dan tidak terdaftar di remotePatterns.
+                     TIDAK diunduh, TIDAK masuk Media Library, TIDAK untuk
+                     artikel — foto media lain berlisensi (hak cipta). */
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={thumb}
+                    alt=""
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                    className={`mt-2 rounded-md object-cover w-full ${halaman ? "max-h-36" : "max-h-24"}`}
+                  />
+                );
+              })()}
               <p className={`text-gray-500 mt-0.5 ${halaman ? "text-sm" : "text-[11px]"}`}>{t.ringkasan}</p>
 
               <p

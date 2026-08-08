@@ -22,25 +22,12 @@ interface Props {
 /**
  * Penanda mendesak. Sengaja kecil dan jarang: kalau semua berita
  * ditandai, penanda ini kehilangan artinya dan pembaca berhenti melihatnya.
+ * (Label "Langsung" dihapus 2026-08-08 bersama seluruh fitur Artikel Live —
+ * keputusan pemilik: situs ini tidak menyiarkan liputan langsung.)
  */
-function PenandaStatus({ breaking, live }: { breaking: boolean; live: boolean }) {
-  if (!breaking && !live) return null;
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      {breaking && <span className="badge-accent">Breaking</span>}
-      {live && (
-        <span className="inline-flex items-center gap-1 label-rubrik text-red-600">
-          {/* Titik berdenyut — satu-satunya gerak di kartu, dan berhenti
-              sendiri saat pengguna memilih kurangi animasi */}
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600" />
-          </span>
-          Langsung
-        </span>
-      )}
-    </span>
-  );
+function PenandaStatus({ breaking }: { breaking: boolean }) {
+  if (!breaking) return null;
+  return <span className="badge-accent">Breaking</span>;
 }
 
 function ChipRubrik({ nama, slug }: { nama: string; slug: string }) {
@@ -52,7 +39,7 @@ function ChipRubrik({ nama, slug }: { nama: string; slug: string }) {
 }
 
 export default function ArticleCard({ article, variant = "default", urutan }: Props) {
-  const { title, slug, excerpt, thumbnailUrl, publishedAt, category, author, isBreaking, isLive } = article;
+  const { title, slug, excerpt, thumbnailUrl, publishedAt, category, author, isBreaking } = article;
 
   const waktu = publishedAt ? (
     <time dateTime={new Date(publishedAt).toISOString()}>{formatRelativeDate(publishedAt)}</time>
@@ -80,7 +67,7 @@ export default function ArticleCard({ article, variant = "default", urutan }: Pr
 
         <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
           <div className="flex flex-wrap items-center gap-2 mb-3">
-            <PenandaStatus breaking={isBreaking} live={isLive} />
+            <PenandaStatus breaking={isBreaking} />
             <Link
               href={`/kategori/${category.slug}`}
               className="label-rubrik text-white/90 hover:text-white transition-colors"
@@ -99,11 +86,9 @@ export default function ArticleCard({ article, variant = "default", urutan }: Pr
             <p className="deck text-gray-200 mt-3 line-clamp-2 max-w-2xl hidden sm:block">{excerpt}</p>
           )}
 
-          <div className="meta text-gray-300 mt-3 flex items-center gap-2">
-            <span>{author.name}</span>
-            <span aria-hidden="true">·</span>
-            {waktu}
-          </div>
+          {/* Hanya waktu — nama penulis dihapus dari hero (permintaan pemilik);
+              byline lengkap tetap ada di halaman artikelnya sendiri */}
+          <div className="meta text-gray-300 mt-3">{waktu}</div>
         </div>
       </article>
     );
@@ -137,7 +122,7 @@ export default function ArticleCard({ article, variant = "default", urutan }: Pr
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-1.5 mb-1">
-            <PenandaStatus breaking={isBreaking} live={isLive} />
+            <PenandaStatus breaking={isBreaking} />
             <Link
               href={`/kategori/${category.slug}`}
               data-rubrik={category.slug}
@@ -175,7 +160,7 @@ export default function ArticleCard({ article, variant = "default", urutan }: Pr
             <Link href={`/berita/${slug}`}>{title}</Link>
           </h3>
           <div className="meta mt-1 flex flex-wrap items-center gap-1.5">
-            <PenandaStatus breaking={isBreaking} live={isLive} />
+            <PenandaStatus breaking={isBreaking} />
             <Link
               href={`/kategori/${category.slug}`}
               data-rubrik={category.slug}
@@ -222,7 +207,7 @@ export default function ArticleCard({ article, variant = "default", urutan }: Pr
 
       <div className="p-4 flex flex-col flex-1">
         <div className="flex flex-wrap items-center gap-1.5 mb-2">
-          <PenandaStatus breaking={isBreaking} live={isLive} />
+          <PenandaStatus breaking={isBreaking} />
           <ChipRubrik nama={category.name} slug={category.slug} />
         </div>
 

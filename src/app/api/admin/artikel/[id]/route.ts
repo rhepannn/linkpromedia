@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json();
-    const { title, slug, excerpt, content, categoryId, status, thumbnailUrl, isBreaking, isEditorsPick, isLive, scheduledAt, metaTitle, metaDescription, tags, aiSummary } = body;
+    const { title, slug, excerpt, content, categoryId, status, thumbnailUrl, isBreaking, isEditorsPick, scheduledAt, metaTitle, metaDescription, tags, aiSummary } = body;
 
     if (title !== undefined && !title.trim())
       return NextResponse.json({ error: "Judul tidak boleh kosong" }, { status: 400 });
@@ -113,7 +113,6 @@ export async function PATCH(req: NextRequest, { params }: Params) {
         ...statusData,
         ...(isBreaking !== undefined && { isBreaking: !!isBreaking }),
         ...(isEditorsPick !== undefined && { isEditorsPick: !!isEditorsPick }),
-        ...(isLive !== undefined && { isLive: !!isLive }),
         ...(metaTitle !== undefined && { metaTitle: metaTitle?.trim() || null }),
         ...(metaDescription !== undefined && { metaDescription: metaDescription?.trim() || null }),
         ...(aiSummary !== undefined && {

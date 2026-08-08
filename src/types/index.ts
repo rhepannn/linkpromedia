@@ -31,7 +31,6 @@ export interface Article {
   status: ArticleStatus;
   isBreaking: boolean;
   isEditorsPick: boolean;
-  isLive: boolean;
   viewCount: number;
   previewToken?: string | null;
   previewTokenExpiresAt?: Date | string | null;
@@ -59,7 +58,6 @@ export interface ArticleCard {
   status: ArticleStatus;
   isBreaking: boolean;
   isEditorsPick: boolean;
-  isLive: boolean;
   viewCount: number;
   publishedAt?: Date | string | null;
   category: Category;

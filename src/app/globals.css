@@ -458,3 +458,23 @@ html {
     transition: none;
   }
 }
+
+/* ── INDIKATOR "SEDANG MENGETIK" DI CHATBOT ─────────────────────
+   Denyut OPASITAS, bukan gerak spasial. Aturan prefers-reduced-motion
+   global di atas membekukan semua animasi (0.01ms !important), termasuk
+   titik-titik ini — padahal pudar-memudar bukan jenis gerak yang memicu
+   gangguan vestibular, dan tanpa denyut sama sekali indikator ini terlihat
+   seperti macet. Karena itu diberi pengecualian eksplisit di bawah. */
+@keyframes denyut-titik {
+  0%, 80%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+.denyut-titik {
+  animation: denyut-titik 1.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .denyut-titik {
+    animation-duration: 1.6s !important;
+    animation-iteration-count: infinite !important;
+  }
+}

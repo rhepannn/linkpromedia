@@ -24,6 +24,8 @@ export interface BeritaEksternal {
   url: string;
   ringkasan: string;
   waktu: string | null;
+  /** Thumbnail resmi dari feed penerbit — pratinjau riset saja, lihat ambilGambar() */
+  gambar: string | null;
 }
 
 interface SumberRss {
@@ -75,6 +77,27 @@ function ambilTag(item: string, tag: string): string {
   return cocok ? bersihkanTeks(cocok[1]) : "";
 }
 
+/**
+ * Thumbnail RESMI yang disertakan penerbit di feed-nya sendiri
+ * (<enclosure>, <media:content>, atau <media:thumbnail>). Dipakai HANYA
+ * sebagai pratinjau kecil di panel riset admin — tidak pernah diunduh,
+ * tidak masuk Media Library, tidak dipakai di artikel: menyalin foto media
+ * lain adalah pelanggaran hak cipta (fotonya berlisensi, beda dari faktanya).
+ */
+function ambilGambar(item: string): string | null {
+  const pola = [
+    /<enclosure[^>]+url="([^"]+)"[^>]*type="image\/[^"]*"/i,
+    /<media:content[^>]+url="([^"]+)"[^>]*(?:medium="image"|type="image\/[^"]*")/i,
+    /<media:thumbnail[^>]+url="([^"]+)"/i,
+    /<enclosure[^>]+url="([^"]+\.(?:jpg|jpeg|png|webp)[^"]*)"/i,
+  ];
+  for (const p of pola) {
+    const cocok = item.match(p);
+    if (cocok && /^https:\/\//i.test(cocok[1])) return decodeEntitas(cocok[1]);
+  }
+  return null;
+}
+
 function uraikanFeed(xml: string, namaSumber: string): BeritaEksternal[] {
   const items = xml.match(/<item(?:\s[^>]*)?>[\s\S]*?<\/item>/gi) ?? [];
   const hasil: BeritaEksternal[] = [];
@@ -102,6 +125,7 @@ function uraikanFeed(xml: string, namaSumber: string): BeritaEksternal[] {
       url,
       ringkasan: ambilTag(item, "description").slice(0, 300),
       waktu: ambilTag(item, "pubDate") || null,
+      gambar: ambilGambar(item),
     });
   }
   return hasil;

@@ -8,7 +8,6 @@ import { ambilDraftSiapIsi } from "@/lib/draftHandoff";
 import RichTextEditor from "./RichTextEditor";
 import ArticleRevisions from "./ArticleRevisions";
 import MediaPicker from "./MediaPicker";
-import LiveUpdatePanel from "./LiveUpdatePanel";
 import EditorialNotes from "./EditorialNotes";
 import ReviewPanel from "./ReviewPanel";
 import VideoPanel from "./VideoPanel";
@@ -25,7 +24,6 @@ interface InitialData {
   thumbnailUrl: string;
   isBreaking: boolean;
   isEditorsPick: boolean;
-  isLive: boolean;
   scheduledAt: string;
   previewToken?: string | null;
   metaTitle: string;
@@ -69,7 +67,6 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
   const [thumbnailUrl, setThumbnailUrl] = useState(initialData?.thumbnailUrl ?? "");
   const [isBreaking, setIsBreaking] = useState(initialData?.isBreaking ?? false);
   const [isEditorsPick, setIsEditorsPick] = useState(initialData?.isEditorsPick ?? false);
-  const [isLive, setIsLive] = useState(initialData?.isLive ?? false);
   const [metaTitle, setMetaTitle] = useState(initialData?.metaTitle ?? "");
   const [metaDescription, setMetaDescription] = useState(initialData?.metaDescription ?? "");
   const [tags, setTags] = useState<string[]>(initialData?.tags ?? []);
@@ -185,7 +182,6 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
       thumbnailUrl,
       isBreaking,
       isEditorsPick,
-      isLive,
       metaTitle,
       metaDescription,
       tags,
@@ -411,15 +407,6 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
                   className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                 />
                 Tampilkan di <span className="font-semibold">Editor&apos;s Pick</span>
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isLive}
-                  onChange={(e) => setIsLive(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                />
-                Jadikan <span className="font-semibold">Artikel Live</span> (bisa ditambah update kronologis)
               </label>
             </div>
 
@@ -722,7 +709,6 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
           </div>
 
           {/* Update Langsung (artikel live) */}
-          {isEdit && isLive && initialData?.id && <LiveUpdatePanel articleId={initialData.id} />}
 
           {/* Terjemahan — hanya untuk artikel asli, bukan artikel hasil terjemahan */}
           {isEdit && initialData?.id && !initialData?.translationOfId && (

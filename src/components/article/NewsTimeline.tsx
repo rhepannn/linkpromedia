@@ -12,14 +12,12 @@ interface KronologiEntry {
   thumbnailUrl: string | null;
   publishedAt: string | null;
   isBreaking: boolean;
-  isLive: boolean;
-  liveUpdateCount: number;
-  type: "breaking" | "live" | "article";
+  type: "breaking" | "article";
   category: { id: string; name: string; slug: string };
   author: { id: string; name: string };
 }
 
-type FilterType = "semua" | "breaking" | "live";
+type FilterType = "semua" | "breaking";
 
 export default function NewsTimeline() {
   const [entries, setEntries] = useState<KronologiEntry[]>([]);
@@ -76,7 +74,7 @@ export default function NewsTimeline() {
     <div className="max-w-3xl mx-auto">
       {/* Filter */}
       <div className="flex items-center gap-2 mb-8">
-        {(["semua", "breaking", "live"] as FilterType[]).map((t) => (
+        {(["semua", "breaking"] as FilterType[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -87,7 +85,7 @@ export default function NewsTimeline() {
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
-            {t === "semua" ? "Semua" : t === "breaking" ? "Breaking" : "Live"}
+            {t === "semua" ? "Semua" : "Breaking"}
           </button>
         ))}
       </div>
@@ -125,8 +123,6 @@ export default function NewsTimeline() {
                         className={`w-3 h-3 rounded-full ${
                           entry.type === "breaking"
                             ? "bg-red-500 ring-2 ring-red-100"
-                            : entry.type === "live"
-                            ? "bg-green-500 ring-2 ring-green-100"
                             : "bg-gray-300"
                         }`}
                       />
@@ -137,13 +133,6 @@ export default function NewsTimeline() {
                         {entry.isBreaking && (
                           <span className="text-[10px] font-bold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
                             Breaking
-                          </span>
-                        )}
-                        {entry.isLive && (
-                          <span className="text-[10px] font-bold uppercase bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex items-center gap-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                            Live
-                            {entry.liveUpdateCount > 0 && ` · ${entry.liveUpdateCount}`}
                           </span>
                         )}
                         <span className="text-xs text-gray-400">

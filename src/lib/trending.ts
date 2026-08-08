@@ -69,7 +69,6 @@ export async function getTrendingArticles(limit = 6, periodeJam = 72): Promise<T
       status: true,
       isBreaking: true,
       isEditorsPick: true,
-      isLive: true,
       viewCount: true,
       shareCount: true,
       publishedAt: true,

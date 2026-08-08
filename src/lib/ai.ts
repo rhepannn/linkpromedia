@@ -20,7 +20,9 @@ export async function askJson<T>(systemPrompt: string, userPrompt: string): Prom
   const res = await getGroq().chat.completions.create({
     model: MODEL,
     temperature: 0.4,
-    max_tokens: 1024,
+    // 2048, bukan 1024: draf kutipan-media kini 4-7 paragraf, dan JSON yang
+    // terpotong di tengah bukan sekadar pendek — gagal di-parse seluruhnya
+    max_tokens: 2048,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: systemPrompt },
@@ -338,8 +340,16 @@ const PANDUAN_BAHAN: Record<JenisBahan, string> = {
     "artikel penuh dan BUKAN hasil liputan redaksi sendiri. ATURAN ATRIBUSI MUTLAK: setiap fakta WAJIB " +
     "disebutkan sumber medianya langsung di kalimat, contoh 'menurut CNN Indonesia...', 'sebagaimana " +
     "dilaporkan Antara...', 'dikutip dari Tempo...'. DILARANG KERAS menulis seolah ini hasil liputan " +
-    "independen LinkProMedia. Karena bahan hanya cuplikan singkat, tulis berita PENDEK — JANGAN mengarang " +
-    "detail, kutipan narasumber, atau angka tambahan supaya terasa lebih lengkap. " +
+    "independen LinkProMedia. " +
+    "PANJANG & STRUKTUR: manfaatkan SEMUA butir bahan sampai habis — jangan berhenti setelah dua " +
+    "paragraf kalau bahannya masih menyisakan fakta yang belum terpakai. Susun 4-7 paragraf: " +
+    "(1) lead berisi fakta terpenting; (2-…) kembangkan TIAP judul/cuplikan jadi paragraf atau " +
+    "gabungan paragrafnya sendiri — setiap media yang melaporkan sudut berbeda diceritakan sudutnya, " +
+    "termasuk perbedaan penekanan antar media bila ada ('CNN Indonesia menyoroti X, sementara Antara " +
+    "menekankan Y'); (terakhir) paragraf penutup yang merangkum apa yang belum diketahui berdasarkan " +
+    "bahan. Panjang tetap DIBATASI BAHAN: kalau bahannya cuma dua butir, hasilnya memang pendek — " +
+    "DILARANG mengarang detail, kutipan narasumber, latar belakang, atau angka tambahan supaya " +
+    "terasa lebih lengkap. " +
     '"content" HANYA berisi isi beritanya sendiri (paragraf berita biasa dengan atribusi di dalam kalimat ' +
     "seperti contoh di atas) — DILARANG KERAS menambahkan kalimat disclaimer, peringatan, atau catatan " +
     "meta apa pun tentang status bahan ini (mis. 'ini rangkuman', 'perlu diverifikasi') ke dalam \"content\"; " +

@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
         status: true,
         isBreaking: true,
         isEditorsPick: true,
-        isLive: true,
         viewCount: true,
         publishedAt: true,
         categoryId: true,

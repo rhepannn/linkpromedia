@@ -27,12 +27,20 @@ export default function BreakingTicker({ articles }: Props) {
   useEffect(() => {
     if (articles.length < 2 || berhenti) return;
 
-    // Rotasi otomatis dimatikan untuk pembaca yang memilih kurangi animasi:
-    // konten yang berganti sendiri termasuk gerak yang mengganggu bagi mereka.
-    const kurangiGerak = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (kurangiGerak.matches) return;
+    // Rotasi tetap berjalan untuk SEMUA pembaca — dulu dimatikan total di
+    // bawah prefers-reduced-motion, tapi itu membuat kabar breaking lain tak
+    // pernah terlihat (dan pemilik situs mengira fiturnya rusak, karena
+    // Windows yang mematikan efek animasi ikut memicu preferensi ini).
+    // Kompromi aksesibilitasnya: pengguna kurangi-gerak mendapat pergantian
+    // JUDUL INSTAN tanpa animasi memudar, dan rotasi tetap bisa dijeda
+    // lewat hover/fokus — kontrol jeda itulah syarat utamanya.
+    const kurangiGerak = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const timer = setInterval(() => {
+      if (kurangiGerak) {
+        setIndex((i) => (i + 1) % articles.length);
+        return;
+      }
       // Redupkan dulu, ganti judul saat tak terlihat, lalu munculkan lagi
       setTampil(false);
       setTimeout(() => {

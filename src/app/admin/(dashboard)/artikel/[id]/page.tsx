@@ -59,7 +59,6 @@ export default async function EditArticlePage({ params }: Props) {
           thumbnailUrl: article.thumbnailUrl ?? "",
           isBreaking: article.isBreaking,
           isEditorsPick: article.isEditorsPick,
-          isLive: article.isLive,
           previewToken: article.previewToken,
           metaTitle: article.metaTitle ?? "",
           metaDescription: article.metaDescription ?? "",

@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, slug, excerpt, content, categoryId, status, thumbnailUrl, isBreaking, isEditorsPick, isLive, scheduledAt, metaTitle, metaDescription, tags, aiSummary } = body;
+    const { title, slug, excerpt, content, categoryId, status, thumbnailUrl, isBreaking, isEditorsPick, scheduledAt, metaTitle, metaDescription, tags, aiSummary } = body;
 
     if (!title?.trim()) return NextResponse.json({ error: "Judul wajib diisi" }, { status: 400 });
     if (!content?.trim()) return NextResponse.json({ error: "Konten wajib diisi" }, { status: 400 });
@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
         publishedAt,
         isBreaking: !!isBreaking,
         isEditorsPick: !!isEditorsPick,
-        isLive: !!isLive,
         previewToken: crypto.randomUUID(),
         previewTokenExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
         metaTitle: metaTitle?.trim() || null,
