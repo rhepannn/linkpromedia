@@ -78,12 +78,28 @@ export function countWords(html: string): number {
 export const MIN_INDEXABLE_WORDS = 150;
 
 /**
+ * Alamat dasar situs, DINORMALKAN — selalu ber-skema dan tanpa garis miring
+ * penutup.
+ *
+ * Kenapa perlu: di dashboard Vercel orang hampir selalu mengetik env var
+ * tanpa "https://" (cukup "situs.vercel.app"). `new URL()` atas nilai
+ * seperti itu melempar ERR_INVALID_URL dan MENGGAGALKAN SELURUH BUILD —
+ * persis yang terjadi pada deploy pertama proyek ini. Menambahkan skema di
+ * sini membuat kesalahan pengisian yang wajar itu tidak lagi fatal.
+ */
+export function siteBaseUrl(): string {
+  const mentah = (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXTAUTH_URL ||
+    "https://linkpromedia.id"
+  ).trim();
+  const berSkema = /^https?:\/\//i.test(mentah) ? mentah : `https://${mentah}`;
+  return berSkema.replace(/\/+$/, "");
+}
+
+/**
  * Buat URL absolut dari path relatif
  */
 export function absoluteUrl(path: string): string {
-  const base =
-    process.env.NEXTAUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    "https://linkpromedia.id";
-  return `${base}${path}`;
+  return `${siteBaseUrl()}${path}`;
 }

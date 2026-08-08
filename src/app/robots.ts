@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
+import { siteBaseUrl } from "@/lib/utils";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://linkpromedia.id";
+const BASE_URL = siteBaseUrl();
 
 export default function robots(): MetadataRoute.Robots {
   return {

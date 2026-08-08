@@ -8,7 +8,9 @@ const PUBLISHER = {
   url: absoluteUrl(""),
   logo: {
     "@type": "ImageObject",
-    url: absoluteUrl("/icon"),
+    // Berkas statis di public/ — rute /icon lama (generator ikon) sudah
+    // dihapus saat logo merek dipasang, jadi jangan ditunjuk lagi
+    url: absoluteUrl("/icon-512.png"),
   },
   parentOrganization: {
     "@type": "Organization",

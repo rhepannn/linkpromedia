@@ -3,6 +3,7 @@ import { Geist } from "next/font/google";
 import "./globals.css";
 import ThemeScript from "@/components/layout/ThemeScript";
 import ServiceWorkerRegistrar from "@/components/layout/ServiceWorkerRegistrar";
+import { siteBaseUrl } from "@/lib/utils";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,9 +17,9 @@ export const metadata: Metadata = {
   },
   description:
     "LinkProMedia adalah media berita nasional terpercaya yang menyajikan berita terkini seputar nasional, ekonomi, teknologi, olahraga, dan hiburan.",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://linkpromedia.id"
-  ),
+  // siteBaseUrl() menormalkan env var yang diisi tanpa "https://" — nilai
+  // mentah di sini pernah menggagalkan build di Vercel (ERR_INVALID_URL)
+  metadataBase: new URL(siteBaseUrl()),
   openGraph: {
     type: "website",
     siteName: "LinkProMedia",
