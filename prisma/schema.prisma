@@ -1,0 +1,326 @@
+// LinkProMedia - Prisma Schema
+// Database: PostgreSQL (Supabase / Neon)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+
+  // Runtime memakai TRANSACTION-mode pooler (port 6543). Session mode (5432)
+  // menahan satu koneksi per klien sepanjang sesi dan dibatasi pool_size 16 —
+  // di serverless tiap instance jadi satu klien, jadi batas itu cepat habis
+  // dan memunculkan "max clients reached in session mode".
+  url = env("DATABASE_URL")
+
+  // Perintah schema (db push / migrate) tidak bisa lewat pooler transaction,
+  // jadi diarahkan ke session pooler yang tetap bisa dijangkau dari mesin dev.
+  directUrl = env("DIRECT_URL")
+
+  // pg_trgm dibutuhkan supaya pencarian judul/ringkasan bisa memakai indeks GIN
+  // alih-alih memindai seluruh tabel setiap kali ada yang mencari
+  extensions = [pg_trgm]
+}
+
+// ─────────────────────────────────────────
+// ENUM
+// ─────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  EDITOR
+  AUTHOR
+}
+
+enum ArticleStatus {
+  DRAFT
+  IN_REVIEW
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────
+// MODELS
+// ─────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  role          Role      @default(AUTHOR)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  /** Slug untuk URL profil publik (/penulis/slug) — null berarti belum ada halaman publik */
+  slug        String?  @unique
+  bio         String?  @db.Text
+  /** Centang biru jurnalis terverifikasi — ditandai manual oleh Admin, bukan otomatis */
+  isVerified  Boolean  @default(false)
+
+  articles      Article[]
+  accounts      Account[]
+  sessions      Session[]
+  activityLogs  ActivityLog[]
+  revisions     ArticleRevision[]
+  media         Media[]
+  liveUpdates   ArticleLiveUpdate[]
+  articleNotes  ArticleNote[]
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  articles Article[]
+}
+
+model Tag {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  slug     String       @unique
+  articles ArticleTag[]
+}
+
+model Article {
+  id            String        @id @default(cuid())
+  title         String
+  slug          String        @unique
+  excerpt       String?
+  content       String        @db.Text
+  /** Dihitung otomatis saat disimpan — dipakai menandai konten tipis (noindex + dikecualikan dari sitemap) */
+  wordCount     Int           @default(0)
+  thumbnailUrl  String?
+  status        ArticleStatus @default(DRAFT)
+  isBreaking    Boolean       @default(false)
+  isEditorsPick Boolean       @default(false)
+  isLive        Boolean       @default(false)
+  viewCount     Int           @default(0)
+  shareCount    Int           @default(0)
+  previewToken          String?   @unique
+  previewTokenExpiresAt DateTime?
+  metaTitle       String?
+  metaDescription String?
+  aiSummary       String?  @db.Text
+  publishedAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  /** Kode bahasa ISO 639-1. "id" = artikel asli berbahasa Indonesia. */
+  language String @default("id")
+
+  /**
+   * Artikel sumber yang diterjemahkan. Null berarti ini artikel asli.
+   * Terjemahan ikut terhapus bila artikel aslinya dihapus.
+   */
+  translationOfId String?
+  translationOf   Article?  @relation("ArticleTranslations", fields: [translationOfId], references: [id], onDelete: Cascade)
+  translations    Article[] @relation("ArticleTranslations")
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  tags        ArticleTag[]
+  revisions   ArticleRevision[]
+  liveUpdates ArticleLiveUpdate[]
+  pageViews   PageView[]
+  notes       ArticleNote[]
+
+  // Hampir semua kueri publik menyaring status + publishedAt lalu mengurutkan
+  // menurut publishedAt. Tanpa indeks ini, tiap kunjungan memindai seluruh tabel.
+  @@index([status, publishedAt])
+  // Halaman kategori: saring kategori + status, urutkan terbaru
+  @@index([categoryId, status, publishedAt])
+  // Daftar artikel milik satu penulis di panel admin
+  @@index([authorId])
+  // Panel admin mengurutkan menurut waktu pembuatan
+  @@index([createdAt])
+  // Beranda menyaring sorotan & pilihan redaksi
+  @@index([isBreaking, status, publishedAt])
+  @@index([isEditorsPick, status, publishedAt])
+  // Halaman publik hanya menampilkan artikel berbahasa Indonesia (asli);
+  // terjemahan diakses lewat pengalih bahasa di artikelnya masing-masing
+  @@index([language, status, publishedAt])
+  // Mengambil semua terjemahan milik satu artikel
+  @@index([translationOfId])
+
+  // Indeks trigram: mempercepat pencarian "contains" (ILIKE %kata%) memakai
+  // GIN alih-alih memindai seluruh tabel. Tanpa ini pencarian melambat
+  // linear seiring jumlah artikel bertambah.
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([excerpt(ops: raw("gin_trgm_ops"))], type: Gin)
+}
+
+// Catatan & diskusi internal redaksi pada sebuah artikel.
+// Tidak pernah terlihat oleh pembaca — hanya di panel admin.
+model ArticleNote {
+  id        String   @id @default(cuid())
+  body      String   @db.Text
+  /** Ditandai true untuk catatan yang dibuat sistem, mis. alasan pengembalian artikel */
+  isSystem  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([articleId])
+}
+
+// Update kronologis untuk artikel live (mis. laporan langsung pertandingan/pemilu)
+model ArticleLiveUpdate {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  authorId String?
+  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+}
+
+// Cuplikan isi artikel sebelum diedit — riwayat & rollback
+model ArticleRevision {
+  id        String   @id @default(cuid())
+  title     String
+  excerpt   String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  articleId String
+  article   Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  editedById String?
+  editedBy   User?   @relation(fields: [editedById], references: [id], onDelete: SetNull)
+}
+
+// Pusat media/gambar yang diupload — bisa dipakai ulang lintas artikel
+model Media {
+  id        String   @id @default(cuid())
+  url       String
+  filename  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+}
+
+// Log aktivitas redaksi: login, buat/edit/hapus artikel, perubahan role, dll.
+model ActivityLog {
+  id          String   @id @default(cuid())
+  action      String
+  description String
+  createdAt   DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model ArticleTag {
+  articleId String
+  tagId     String
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag     Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+}
+
+// NextAuth.js required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Catatan kunjungan halaman untuk statistik redaksi.
+// visitorId & sessionId sengaja anonim (hasil hash, berganti tiap hari)
+// supaya bisa menghitung pengunjung unik tanpa menyimpan identitas pembaca.
+model PageView {
+  id        String   @id @default(cuid())
+  visitorId String
+  sessionId String
+  path      String
+  source    String   @default("langsung")
+  referrer  String?
+  duration  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  articleId String?
+  article   Article? @relation(fields: [articleId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([articleId])
+  @@index([sessionId])
+  @@index([visitorId])
+}
+
+// Pelanggan newsletter — pembaca yang berlangganan kabar terbaru lewat email
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  isActive       Boolean   @default(true)
+  unsubscribeKey String    @unique @default(uuid())
+  createdAt      DateTime  @default(now())
+  unsubscribedAt DateTime?
+}
+
+// Langganan Push Notification dari perangkat pembaca.
+// Tidak menyimpan identitas apa pun: endpoint diterbitkan browser dan
+// bisa dicabut sendiri oleh pembaca kapan saja lewat pengaturan situs.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  /** Alamat unik yang diberikan layanan push browser untuk perangkat ini */
+  endpoint  String   @unique
+  /** Kunci enkripsi milik perangkat — wajib untuk mengirim payload */
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  /** Terakhir kali pengiriman ke perangkat ini berhasil — untuk pembersihan */
+  lastSeenAt DateTime @default(now())
+
+  @@index([createdAt])
+}
