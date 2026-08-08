@@ -1,6 +1,15 @@
 # Handoff — LinkProMedia
 
-Dokumen ini untuk AI/sesi berikutnya yang melanjutkan proyek ini. Terakhir diperbarui 2026-08-03.
+Dokumen ini untuk AI/sesi berikutnya yang melanjutkan proyek ini. Terakhir diperbarui 2026-08-08.
+
+## 0. STATUS: SUDAH LIVE DI PRODUKSI (2026-08-08)
+
+- **Domain produksi: https://linkpromedia-id.vercel.app** (Vercel, paket Hobby, repo github.com/rhepannn/linkpromedia branch main — push ke main = deploy otomatis)
+- Login admin sudah diuji user dan bekerja di produksi.
+- Diverifikasi menyeluruh: semua halaman kunci 200, header keamanan + HSTS, API admin 401 tanpa login, robots/sitemap/RSS/OG menunjuk domain yang benar.
+- **Sisa 1 hal kecil:** `CRON_SECRET` belum diisi user di env Vercel — endpoint `/api/cron/promote-scheduled` masih bisa dipicu publik (idempoten, bukan bocor data). Tinggal tambah env + redeploy.
+- Penyesuaian khusus Hobby yang JANGAN dibalik selama masih Hobby: cron harian (bukan per menit) di vercel.json, `maxDuration = 60` di 4 route AI, larangan komersial paket Hobby (kalau mulai dijual → wajib naik Pro).
+- Jebakan build produksi yang sudah dilewati (jangan diulang): `prisma generate` wajib di skrip build; env URL dinormalkan `siteBaseUrl()` di src/lib/utils.ts (isian tanpa https:// pernah menggagalkan build); `useSearchParams()` wajib dibungkus Suspense di halaman statis (LoginForm).
 
 ## 1. Apa proyek ini
 
