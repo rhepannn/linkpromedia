@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import { Suspense } from "react";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -30,7 +31,14 @@ export default function LoginPage() {
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
           <h1 className="text-xl font-bold text-gray-900 mb-6">Masuk ke Dashboard</h1>
-          <LoginForm />
+          {/* LoginForm memakai useSearchParams() (membaca callbackUrl).
+              Halaman ini di-prerender statis, jadi Next.js MEWAJIBKAN
+              pembungkus Suspense — tanpanya build produksi gagal dengan
+              "missing-suspense-with-csr-bailout" (terjadi di deploy Vercel
+              pertama; tak terlihat di dev karena hanya dicek saat build). */}
+          <Suspense fallback={<div className="h-48" aria-hidden="true" />}>
+            <LoginForm />
+          </Suspense>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
