@@ -133,6 +133,7 @@ model Article {
   liveUpdates ArticleLiveUpdate[]
   pageViews   PageView[]
   notes       ArticleNote[]
+  reactions   ArticleReaction[]
 
   // Hampir semua kueri publik menyaring status + publishedAt lalu mengurutkan
   // menurut publishedAt. Tanpa indeks ini, tiap kunjungan memindai seluruh tabel.
@@ -323,4 +324,22 @@ model PushSubscription {
   lastSeenAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// Reaksi pembaca pada artikel (suka/cinta/kaget/sedih/marah).
+// visitorId = hash harian anonim dari lib/analytics — TANPA data pribadi.
+// Konsekuensi garam hariannya: pembaca yang sama dihitung baru tiap hari;
+// diterima, karena reaksi memang sinyal ringan, bukan data akurat per orang.
+model ArticleReaction {
+  id        String   @id @default(cuid())
+  jenis     String
+  visitorId String
+  createdAt DateTime @default(now())
+
+  articleId String
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  // Satu pengunjung satu reaksi per artikel — ganti jenis = ganti baris
+  @@unique([articleId, visitorId])
+  @@index([articleId, jenis])
 }

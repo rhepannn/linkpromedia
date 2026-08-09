@@ -75,6 +75,7 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
   const [summaryCleared, setSummaryCleared] = useState(false);
   const [copiedPreview, setCopiedPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [membuatIlustrasi, setMembuatIlustrasi] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -141,6 +142,28 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
       setErrors((prev) => ({ ...prev, thumbnail: "Terjadi kesalahan saat upload." }));
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function buatIlustrasiAi() {
+    setMembuatIlustrasi(true);
+    setErrors((prev) => ({ ...prev, thumbnail: "" }));
+    try {
+      const res = await fetch("/api/admin/ai/gambar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, excerpt }),
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setThumbnailUrl(data.url);
+      } else {
+        setErrors((prev) => ({ ...prev, thumbnail: data.error ?? "Gagal membuat ilustrasi." }));
+      }
+    } catch {
+      setErrors((prev) => ({ ...prev, thumbnail: "Terjadi kesalahan jaringan." }));
+    } finally {
+      setMembuatIlustrasi(false);
     }
   }
 
@@ -694,6 +717,36 @@ export default function ArticleForm({ categories, initialData, role }: Props) {
             >
               Pilih dari Media Library
             </button>
+
+            <button
+              type="button"
+              onClick={buatIlustrasiAi}
+              disabled={membuatIlustrasi || title.trim().length < 10}
+              className="w-full mt-2 text-xs border border-primary-200 text-primary-600 py-2 rounded-lg hover:bg-primary-50 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+            >
+              {membuatIlustrasi ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Membuat ilustrasi... (~20 dtk)
+                </>
+              ) : (
+                "Buat Ilustrasi AI dari judul"
+              )}
+            </button>
+            {title.trim().length < 10 && !membuatIlustrasi && (
+              <p className="text-xs text-text-muted mt-1">
+                Isi judul dulu — ilustrasi dibuat dari judul artikel.
+              </p>
+            )}
+            {thumbnailUrl.includes("ai-ilustrasi-") && (
+              <p className="text-xs text-accent-text mt-1.5">
+                Ini ilustrasi buatan AI, bukan foto peristiwa — pastikan pembaca tidak
+                terkecoh mengiranya dokumentasi asli.
+              </p>
+            )}
 
             {/* URL manual */}
             <div className="mt-3">

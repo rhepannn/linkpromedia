@@ -15,6 +15,7 @@ import BookmarkButton from "@/components/article/BookmarkButton";
 import ReadingHistoryRecorder from "@/components/article/ReadingHistoryRecorder";
 import PreferensiRecorder from "@/components/article/PreferensiRecorder";
 import TextToSpeech from "@/components/article/TextToSpeech";
+import ReaksiBar from "@/components/article/ReaksiBar";
 import FontSizeControl from "@/components/article/FontSizeControl";
 import JsonLd from "@/components/seo/JsonLd";
 import { newsArticleSchema } from "@/lib/schemaOrg";
@@ -264,6 +265,9 @@ export default async function ArticlePage({ params }: Props) {
               ))}
             </div>
           )}
+
+          {/* Reaksi pembaca — di atas share supaya jadi ajakan pertama */}
+          <ReaksiBar slug={slug} />
 
           {/* Share & Bookmark */}
           <div className="mt-6 pt-6 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3">
