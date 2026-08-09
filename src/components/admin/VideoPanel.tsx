@@ -11,6 +11,12 @@ interface Props {
   namaKategori?: string;
   /** Untuk memberi nama berkas unduhan */
   slug?: string;
+  /**
+   * true = tanpa bungkus kartu & judul sendiri — dipakai saat panel ini
+   * disematkan sebagai salah satu tab di kartu Studio AI, yang sudah
+   * menyediakan kartu dan konteksnya.
+   */
+  tanpaKartu?: boolean;
 }
 
 type Tahap = "kosong" | "menyusun" | "siap" | "merender";
@@ -24,7 +30,7 @@ type Tahap = "kosong" | "menyusun" | "siap" | "merender";
  * semudah artikel, jadi tinjauan manusia harus terjadi sebelum render, bukan
  * sesudah.
  */
-export default function VideoPanel({ title, content, thumbnailUrl, namaKategori, slug }: Props) {
+export default function VideoPanel({ title, content, thumbnailUrl, namaKategori, slug, tanpaKartu = false }: Props) {
   const [tahap, setTahap] = useState<Tahap>("kosong");
   const [naskah, setNaskah] = useState<NaskahVideo | null>(null);
   const [progres, setProgres] = useState(0);
@@ -123,10 +129,12 @@ export default function VideoPanel({ title, content, thumbnailUrl, namaKategori,
   const kontenCukup = content.replace(/<[^>]+>/g, " ").trim().length >= 250;
   const perkiraanDetik = naskah ? naskah.adegan.reduce((t, a) => t + a.detik, 0) + 3 : 0;
 
+  const kelasBungkus = tanpaKartu ? "" : "bg-white border border-gray-100 rounded-xl p-4";
+
   if (!didukung) {
     return (
-      <div className="bg-white border border-gray-100 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">Video Artikel</h3>
+      <div className={kelasBungkus}>
+        {!tanpaKartu && <h3 className="text-sm font-semibold text-gray-700 mb-1">Video Artikel</h3>}
         <p className="text-xs text-text-muted">
           Browser ini belum mendukung pembuatan video. Coba lewat Chrome atau Edge versi terbaru.
         </p>
@@ -135,17 +143,21 @@ export default function VideoPanel({ title, content, thumbnailUrl, namaKategori,
   }
 
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
-        <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-        </svg>
-        Video Artikel
-      </h3>
-      <p className="text-xs text-text-muted mb-3">
-        Ubah artikel jadi video vertikal 9:16 untuk Reels, TikTok, atau Shorts. Tanpa narasi suara —
-        teksnya tampil di layar.
-      </p>
+    <div className={kelasBungkus}>
+      {!tanpaKartu && (
+        <>
+          <h3 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
+            <svg className="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            </svg>
+            Video Artikel
+          </h3>
+          <p className="text-xs text-text-muted mb-3">
+            Ubah artikel jadi video vertikal 9:16 untuk Reels, TikTok, atau Shorts. Tanpa narasi suara —
+            teksnya tampil di layar.
+          </p>
+        </>
+      )}
 
       {error && <p className="text-xs text-red-500 mb-2">{error}</p>}
 
