@@ -343,3 +343,11 @@ model ArticleReaction {
   @@unique([articleId, visitorId])
   @@index([articleId, jenis])
 }
+
+// Pengaturan situs yang bisa diubah pemilik dari panel admin (key-value).
+// Kunci yang dipakai saat ini: "warnaPrimer", "warnaAksen" (hex #rrggbb).
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
