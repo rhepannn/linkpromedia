@@ -25,27 +25,39 @@ const MAKS_BYTE = 5 * 1024 * 1024;
 const LEBAR = 1200;
 const TINGGI = 750; // rasio 16:10, sama dengan kartu artikel
 
+/**
+ * Gaya ditempel mekanis DI DEPAN prompt, bukan diserahkan ke model: generator
+ * memberi bobot terbesar ke kata-kata awal, dan tanpa kata gaya sama sekali
+ * Flux jatuh ke foto realistis — persis yang dilarang etika redaksi. Kata
+ * "minimalist"/"flat vector" sengaja dihindari: pada pengujian, gaya itu
+ * menghapus hampir seluruh detail adegan.
+ */
+const GAYA_ILUSTRASI =
+  "Editorial illustration, stylized digital painting, soft muted color palette, clean composition, no text: ";
+
 async function buatPromptGambar(judul: string, ringkasan?: string): Promise<string> {
   const data = await askJson<{ prompt?: string }>(
     [
-      "You write prompts for an image generator, for an Indonesian news site's article thumbnails.",
-      "Given a news headline (and optional summary), produce ONE English image prompt that:",
-      "- depicts the TOPIC as a tasteful editorial ILLUSTRATION (clean, modern, muted colors),",
-      "  never as a fake news photograph;",
-      "- contains NO text, NO watermark, NO logos;",
-      "- contains NO recognizable real person or their likeness — use objects, places,",
-      "  silhouettes, or symbolic imagery instead;",
-      "- avoids gore or graphic depiction of victims even for disaster/crime news —",
-      "  show the location, objects, or aftermath symbolically.",
-      "Maximum 40 words.",
+      "You describe news scenes for an illustrator, for an Indonesian news site's article thumbnails.",
+      "From the headline and summary, extract the CONCRETE visual scene: the specific place,",
+      "objects, weather, and activity mentioned in the news — not generic symbols.",
+      "Produce ONE English scene description that:",
+      "- names the real setting when the news gives one (city, landmark, environment) and",
+      "  2-4 specific visual elements taken from the news itself;",
+      "- shows people only from behind, from afar, or as silhouettes — never a recognizable",
+      "  face or a real person's likeness;",
+      "- avoids gore or victims even for disaster/crime news — show the place, objects,",
+      "  or aftermath instead;",
+      "- contains NO text, NO watermark, NO logos, and NO art-style words (style is added later).",
+      "25 to 45 words.",
       'Reply ONLY with valid JSON: {"prompt": string}.',
     ].join(" "),
     `Headline: ${judul}\n${ringkasan ? `Summary: ${ringkasan}` : ""}`
   );
 
-  const hasil = typeof data.prompt === "string" ? data.prompt.trim() : "";
+  const adegan = typeof data.prompt === "string" ? data.prompt.trim() : "";
   // Cadangan mekanis kalau model gagal — tetap aman walau kurang spesifik
-  return hasil || `editorial illustration about ${judul}, clean modern style, muted colors, no text`;
+  return GAYA_ILUSTRASI + (adegan || `a scene about ${judul}`);
 }
 
 export interface HasilIlustrasi {
