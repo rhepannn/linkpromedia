@@ -20,7 +20,6 @@
     "@tiptap/react": "^3.29.0",
     "@tiptap/starter-kit": "^3.29.0",
     "bcryptjs": "^3.0.3",
-    "groq-sdk": "^1.4.0",
     "next": "^15.5.22",
     "next-auth": "5.0.0-beta.32",
     "react": "19.0.0",

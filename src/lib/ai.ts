@@ -1,13 +1,4 @@
-import Groq from "groq-sdk";
-
-const MODEL = "llama-3.3-70b-versatile";
-
-// Client dibuat saat dipakai, bukan saat impor — supaya env var sudah termuat
-let client: Groq | null = null;
-function getGroq(): Groq {
-  if (!client) client = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  return client;
-}
+import { chatDenganCadangan } from "@/lib/aiProvider";
 
 export function stripHtml(html: string): string {
   return html
@@ -66,19 +57,17 @@ export function pesanErrorAi(err: unknown): string | null {
 }
 
 export async function askJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
-  const res = await getGroq().chat.completions.create({
-    model: MODEL,
+  const raw = await chatDenganCadangan({
     temperature: 0.4,
     // 2048, bukan 1024: draf kutipan-media kini 4-7 paragraf, dan JSON yang
     // terpotong di tengah bukan sekadar pendek — gagal di-parse seluruhnya
-    max_tokens: 2048,
-    response_format: { type: "json_object" },
+    maxTokens: 2048,
+    json: true,
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt },
     ],
   });
-  const raw = res.choices[0]?.message?.content ?? "{}";
   return JSON.parse(raw) as T;
 }
 
@@ -883,15 +872,11 @@ export async function obrolanBebas(riwayat: PesanObrolan[], pesan: string): Prom
     content: p.teks,
   }));
 
-  const res = await getGroq().chat.completions.create({
-    model: MODEL,
+  const isi = await chatDenganCadangan({
     temperature: 0.7,
-    max_tokens: 1200,
+    maxTokens: 1200,
     messages: [{ role: "system", content: sistem }, ...percakapan, { role: "user", content: pesan }],
   });
 
-  return (
-    res.choices[0]?.message?.content?.trim() ||
-    "Maaf, saya tidak berhasil menyusun jawaban. Coba tanyakan sekali lagi."
-  );
+  return isi.trim() || "Maaf, saya tidak berhasil menyusun jawaban. Coba tanyakan sekali lagi.";
 }
