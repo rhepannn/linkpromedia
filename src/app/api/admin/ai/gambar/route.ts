@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   try {
-    const { title, excerpt } = await req.json();
+    const { title, excerpt, orientasi } = await req.json();
 
     if (typeof title !== "string" || title.trim().length < 10) {
       return NextResponse.json(
@@ -27,18 +27,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const orientasiFinal = orientasi === "potret" ? "potret" : "lanskap";
     const uploadedById = await getValidUserId();
     const hasil = await buatIlustrasi(
       title.trim(),
       typeof excerpt === "string" && excerpt.trim() ? excerpt.trim() : undefined,
-      uploadedById
+      uploadedById,
+      orientasiFinal
     );
 
     if (uploadedById) {
       await logActivity({
         userId: uploadedById,
         action: "MEDIA_UPLOAD",
-        description: `Membuat ilustrasi AI untuk "${title.trim().slice(0, 60)}"`,
+        description: `Membuat ilustrasi AI${orientasiFinal === "potret" ? " (potret 4:5)" : ""} untuk "${title.trim().slice(0, 60)}"`,
       });
     }
 

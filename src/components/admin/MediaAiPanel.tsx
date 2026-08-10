@@ -30,29 +30,40 @@ export default function MediaAiPanel({
   onApplyThumbnail,
 }: Props) {
   const [tab, setTab] = useState<Tab>("ilustrasi");
-  const [membuat, setMembuat] = useState(false);
+  // Menyimpan orientasi yang SEDANG dibuat (null = tidak ada) supaya kedua
+  // tombol tahu kapan harus nonaktif dan spinner muncul di tombol yang benar
+  const [membuat, setMembuat] = useState<"lanskap" | "potret" | null>(null);
   const [pesan, setPesan] = useState<{ jenis: "sukses" | "gagal"; teks: string } | null>(null);
+  const [urlPotret, setUrlPotret] = useState<string | null>(null);
 
-  async function buatIlustrasi() {
-    setMembuat(true);
+  async function buatIlustrasi(orientasi: "lanskap" | "potret") {
+    setMembuat(orientasi);
     setPesan(null);
     try {
       const res = await fetch("/api/admin/ai/gambar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, excerpt }),
+        body: JSON.stringify({ title, excerpt, orientasi }),
       });
       const data = await res.json();
       if (res.ok && data.url) {
-        onApplyThumbnail(data.url);
-        setPesan({ jenis: "sukses", teks: "Jadi! Ilustrasi sudah dipasang sebagai thumbnail." });
+        if (orientasi === "lanskap") {
+          onApplyThumbnail(data.url);
+          setPesan({ jenis: "sukses", teks: "Jadi! Ilustrasi sudah dipasang sebagai thumbnail." });
+        } else {
+          setUrlPotret(data.url);
+          setPesan({
+            jenis: "sukses",
+            teks: "Versi potret 4:5 tersimpan di Media Library — siap dipakai untuk Instagram/medsos.",
+          });
+        }
       } else {
         setPesan({ jenis: "gagal", teks: data.error ?? "Gagal membuat ilustrasi." });
       }
     } catch {
       setPesan({ jenis: "gagal", teks: "Terjadi kesalahan jaringan." });
     } finally {
-      setMembuat(false);
+      setMembuat(null);
     }
   }
 
@@ -98,11 +109,11 @@ export default function MediaAiPanel({
         <div>
           <button
             type="button"
-            onClick={buatIlustrasi}
-            disabled={membuat || judulKurang}
+            onClick={() => buatIlustrasi("lanskap")}
+            disabled={membuat !== null || judulKurang}
             className="w-full bg-primary-600 text-white py-2 rounded-lg text-xs font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
           >
-            {membuat ? (
+            {membuat === "lanskap" ? (
               <>
                 <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -111,9 +122,39 @@ export default function MediaAiPanel({
                 Membuat ilustrasi... (~20 dtk)
               </>
             ) : (
-              "Buat Ilustrasi dari Judul"
+              "Buat Ilustrasi Thumbnail"
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => buatIlustrasi("potret")}
+            disabled={membuat !== null || judulKurang}
+            className="w-full mt-1.5 py-2 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:border-primary-300 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-1.5"
+          >
+            {membuat === "potret" ? (
+              <>
+                <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Membuat versi potret... (~20 dtk)
+              </>
+            ) : (
+              "Buat Versi Potret 4:5 (medsos)"
+            )}
+          </button>
+
+          {urlPotret && (
+            <a
+              href={urlPotret}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block text-xs text-primary-600 hover:underline mt-1.5"
+            >
+              Lihat versi potret →
+            </a>
+          )}
 
           {judulKurang && !membuat && (
             <p className="text-xs text-text-muted mt-1.5">
@@ -138,7 +179,8 @@ export default function MediaAiPanel({
           )}
 
           <p className="text-xs text-text-muted mt-2">
-            Hasilnya otomatis jadi thumbnail dan tersimpan di Media Library.
+            Semua hasil tersimpan di Media Library. Versi thumbnail otomatis terpasang;
+            versi potret untuk diunggah ke media sosial.
           </p>
         </div>
       ) : (

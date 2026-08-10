@@ -22,8 +22,18 @@ import { supabaseAdmin, THUMBNAIL_BUCKET } from "@/lib/supabaseAdmin";
 
 const BATAS_WAKTU_MS = 45_000;
 const MAKS_BYTE = 5 * 1024 * 1024;
-const LEBAR = 1200;
-const TINGGI = 750; // rasio 16:10, sama dengan kartu artikel
+
+export type OrientasiIlustrasi = "lanskap" | "potret";
+
+/**
+ * lanskap = thumbnail artikel (rasio 16:10, sama dengan kartu artikel);
+ * potret = 4:5 untuk media sosial (Instagram/feed) — disimpan ke Media
+ * Library untuk diunduh, tidak dipasang sebagai thumbnail.
+ */
+const UKURAN: Record<OrientasiIlustrasi, { lebar: number; tinggi: number }> = {
+  lanskap: { lebar: 1200, tinggi: 750 },
+  potret: { lebar: 1080, tinggi: 1350 },
+};
 
 /**
  * Gaya ditempel mekanis DI DEPAN prompt, bukan diserahkan ke model: generator
@@ -68,16 +78,18 @@ export interface HasilIlustrasi {
 export async function buatIlustrasi(
   judul: string,
   ringkasan: string | undefined,
-  uploadedById: string | null
+  uploadedById: string | null,
+  orientasi: OrientasiIlustrasi = "lanskap"
 ): Promise<HasilIlustrasi> {
   const prompt = await buatPromptGambar(judul, ringkasan);
+  const { lebar, tinggi } = UKURAN[orientasi];
 
   // "nologo" menghilangkan watermark penyedia; seed acak supaya dua artikel
   // berjudul mirip tidak mendapat gambar kembar
   const seed = Math.floor(Math.random() * 1_000_000);
   const urlGenerator =
     `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-    `?width=${LEBAR}&height=${TINGGI}&nologo=true&seed=${seed}`;
+    `?width=${lebar}&height=${tinggi}&nologo=true&seed=${seed}`;
 
   const pembatal = new AbortController();
   const timer = setTimeout(() => pembatal.abort(), BATAS_WAKTU_MS);
@@ -103,7 +115,7 @@ export async function buatIlustrasi(
     throw new Error("Hasil dari layanan gambar tidak valid. Coba lagi.");
   }
 
-  const filename = `ai-ilustrasi-${Date.now()}-${crypto.randomUUID()}.jpg`;
+  const filename = `ai-ilustrasi-${orientasi === "potret" ? "potret-" : ""}${Date.now()}-${crypto.randomUUID()}.jpg`;
 
   const { error: uploadError } = await supabaseAdmin.storage
     .from(THUMBNAIL_BUCKET)
