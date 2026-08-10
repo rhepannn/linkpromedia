@@ -33,6 +33,7 @@ export type ChatIntent =
   | "fact-check"
   | "writing"
   | "news-discovery"
+  | "riset-web"
   | "belum-tersedia"
   | "obrolan";
 
@@ -63,6 +64,7 @@ const DAFTAR_INTENT = [
   "fact-check — minta cek klaim tanpa sumber, angka janggal, atau kutipan tanpa atribusi",
   "writing — minta masukan gaya penulisan: kalimat kepanjangan, paragraf kurang jelas, atau bagian yang perlu diperkuat sumber/kutipan/data",
   "news-discovery — minta dicarikan berita/isu yang sedang ramai di media lain, contoh: 'carikan berita terbaru', 'apa yang lagi hits hari ini', 'berita apa yang belum kita liput', 'cari berita soal pemilu'",
+  "riset-web — minta RISET MENDALAM satu topik tertentu: cari data, sumber resmi, atau bahan tulisan soal topik itu dari internet. Contoh: 'riset topik harga beras', 'risetkan soal kenaikan UMP', 'carikan data resmi tentang inflasi', 'kumpulkan bahan soal banjir Semarang'. Bedanya dengan news-discovery: news-discovery menanyakan APA yang sedang ramai (tanpa/dengan topik longgar), riset-web MENDALAMI SATU topik yang sudah pasti.",
   "belum-tersedia — HANYA untuk permintaan menulis/membuatkan artikel berita siap terbit dari sekadar topik atau judul, tanpa bahan sumber. Contoh: 'tulisin artikel soal banjir Jakarta', 'buatkan berita tentang kenaikan harga BBM'. JANGAN pakai intent ini untuk permintaan lain apa pun.",
   "obrolan — SEMUA hal lain: sapaan, pertanyaan umum, penjelasan konsep, diskusi sudut liputan, bantuan menyusun pertanyaan wawancara, hitung-hitungan, terjemahan istilah, atau obrolan santai. Ini pilihan default kalau ragu.",
 ].join("\n");
@@ -89,6 +91,10 @@ export async function klasifikasiIntent(pesan: string): Promise<HasilKlasifikasi
       "Kalau intent adalah 'news-discovery' DAN pengguna menyebut topik/bidang tertentu (mis. 'berita",
       "soal pemilu', 'kabar ekonomi terbaru'), isi \"topik\" dengan kata kunci topiknya saja (1-3 kata,",
       "tanpa kata perintah). Kalau pengguna hanya minta berita terbaru secara umum, kosongkan \"topik\".",
+      "",
+      "Kalau intent adalah 'riset-web', WAJIB isi \"topik\" dengan topik yang mau diriset (2-6 kata,",
+      "tanpa kata perintah seperti 'riset'/'carikan'). Kalau topiknya tidak jelas, pakai 'obrolan' dan",
+      "biarkan tahap berikutnya menanyakan topiknya.",
       "",
       'Balas HANYA JSON valid: {"intent": string, "catatan": string (opsional), "bahasaTarget": string (opsional), "topik": string (opsional)}.',
     ].join(" "),

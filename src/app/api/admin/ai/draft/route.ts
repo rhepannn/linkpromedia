@@ -3,7 +3,14 @@ import { draftArticleFromSource, suggestCategory, type JenisBahan } from "@/lib/
 import { getSessionActor } from "@/lib/sessionRole";
 import { prisma } from "@/lib/prisma";
 
-const JENIS_VALID: JenisBahan[] = ["siaran-pers", "catatan-lapangan", "data", "dokumen", "kutipan-media"];
+const JENIS_VALID: JenisBahan[] = [
+  "siaran-pers",
+  "catatan-lapangan",
+  "data",
+  "dokumen",
+  "kutipan-media",
+  "riset-web",
+];
 
 // Dua panggilan AI berantai (susun draf lalu pilih kategori) bisa melewati
 // batas bawaan Vercel Hobby (~10 dtk); 60 dtk = maksimum Hobby.

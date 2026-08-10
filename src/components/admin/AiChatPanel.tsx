@@ -862,6 +862,105 @@ function HasilRenderer({
     );
   }
 
+  if (tipe === "riset-web") {
+    const r = hasil as {
+      topik: string;
+      sumber: { judul: string; url: string; domain: string; cuplikan: string; resmi: boolean }[];
+      jumlahResmi: number;
+    } | null;
+    if (!r?.sumber?.length) return <p className={`text-gray-400 ${isi}`}>Tidak ada sumber yang ditemukan.</p>;
+
+    /**
+     * Sama seperti buatDrafDariTopik (news-discovery), tapi bahannya cuplikan
+     * hasil riset web — jenis "riset-web": atribusi + URL wajib per fakta,
+     * sumber [RESMI] diprioritaskan, angka beda antar sumber ditulis dua-duanya
+     * (lihat PANDUAN_BAHAN di src/lib/ai.ts).
+     */
+    async function buatDrafDariRiset(rs: NonNullable<typeof r>) {
+      setMenyusunIndeks(0);
+      setErrorDraf("");
+
+      const bahan = [
+        `Hasil penelusuran web soal "${rs.topik}":`,
+        "",
+        ...rs.sumber.map(
+          (s, i) =>
+            `${i + 1}. ${s.resmi ? "[RESMI] " : ""}[${s.domain}] ${s.judul}\n   ${s.cuplikan}\n   Sumber: ${s.url}`
+        ),
+      ].join("\n");
+
+      try {
+        const res = await fetch("/api/admin/ai/draft", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bahan, jenis: "riset-web", arahan: rs.topik }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.draf) {
+          setErrorDraf(data.error ?? "Gagal menyusun draf dari hasil riset ini.");
+          return;
+        }
+        kirimDraftSiapIsi({
+          ...data.draf,
+          ...(data.kategori && { categoryId: data.kategori.id, categoryNama: data.kategori.nama }),
+        });
+        router.push("/admin/artikel/baru");
+      } catch {
+        setErrorDraf("Terjadi kesalahan jaringan saat menyusun draf.");
+      } finally {
+        setMenyusunIndeks(null);
+      }
+    }
+
+    return (
+      <div>
+        <ul className={halaman ? "space-y-2.5" : "space-y-2"}>
+          {r.sumber.map((s) => (
+            <li key={s.url} className={`rounded-lg border p-2.5 ${halaman ? "p-3" : ""} ${
+              s.resmi ? "bg-primary-50 border-primary-100" : "bg-white border-gray-100"
+            }`}>
+              <div className="flex items-start justify-between gap-2">
+                <a
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`font-semibold text-gray-700 hover:text-primary-600 hover:underline ${halaman ? "text-sm" : "text-xs"}`}
+                >
+                  {s.judul}
+                </a>
+                {s.resmi && (
+                  <span className={`bg-primary-600 text-white rounded px-1.5 py-0.5 font-semibold whitespace-nowrap flex-shrink-0 ${ket}`}>
+                    RESMI
+                  </span>
+                )}
+              </div>
+              <p className={`text-gray-400 mt-0.5 ${ket}`}>{s.domain}</p>
+              <p className={`text-gray-500 mt-1 ${halaman ? "text-sm" : "text-[11px]"}`}>
+                {s.cuplikan.length > 260 ? s.cuplikan.slice(0, 260) + "…" : s.cuplikan}
+              </p>
+            </li>
+          ))}
+        </ul>
+
+        <button
+          type="button"
+          onClick={() => buatDrafDariRiset(r)}
+          disabled={menyusunIndeks !== null}
+          className={`${applyClass} mt-2.5 inline-flex items-center gap-1 disabled:opacity-50`}
+        >
+          {menyusunIndeks !== null ? "Menyusun draf..." : "Buatkan draf artikel dari hasil riset →"}
+        </button>
+
+        {errorDraf && <p className={`text-red-600 mt-2 ${ket}`}>{errorDraf}</p>}
+
+        <p className={`text-gray-400 mt-2 ${ket}`}>
+          AI hanya membaca cuplikan pendek tiap halaman, bukan isi penuhnya — buka sumber aslinya
+          sebelum draf diterbitkan. Setiap fakta di draf wajib beratribusi ke sumbernya.
+        </p>
+      </div>
+    );
+  }
+
   if (tipe === "writing") {
     const saran = hasil as { jenis: string; kutipan: string; saran: string }[];
     if (!saran?.length) return <p className={`text-green-600 ${isi}`}>Tulisannya sudah cukup baik, tidak ada masukan.</p>;

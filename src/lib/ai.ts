@@ -332,7 +332,13 @@ export interface ArticleDraft {
   perluDiverifikasi: string[];
 }
 
-export type JenisBahan = "siaran-pers" | "catatan-lapangan" | "data" | "dokumen" | "kutipan-media";
+export type JenisBahan =
+  | "siaran-pers"
+  | "catatan-lapangan"
+  | "data"
+  | "dokumen"
+  | "kutipan-media"
+  | "riset-web";
 
 const PANDUAN_BAHAN: Record<JenisBahan, string> = {
   "kutipan-media":
@@ -354,6 +360,22 @@ const PANDUAN_BAHAN: Record<JenisBahan, string> = {
     "seperti contoh di atas) — DILARANG KERAS menambahkan kalimat disclaimer, peringatan, atau catatan " +
     "meta apa pun tentang status bahan ini (mis. 'ini rangkuman', 'perlu diverifikasi') ke dalam \"content\"; " +
     'catatan semacam itu HANYA boleh muncul di "perluDiverifikasi", tidak pernah di isi berita.',
+  "riset-web":
+    "Bahan ini HASIL PENELUSURAN WEB — kumpulan cuplikan dari beberapa situs (media dan situs resmi), " +
+    "BUKAN artikel penuh dan BUKAN liputan redaksi sendiri. ATURAN ATRIBUSI MUTLAK: setiap fakta WAJIB " +
+    "menyebut sumbernya langsung di kalimat ('menurut data BPS...', 'sebagaimana dilaporkan Kompas...'). " +
+    "PRIORITAS SUMBER: bila fakta yang sama tersedia dari situs resmi (bertanda [RESMI]) dan media, " +
+    "pakai versi situs resmi sebagai rujukan utama. " +
+    "ANGKA BERBEDA ANTAR SUMBER: JANGAN memilih salah satu diam-diam — tulis keduanya dengan sumber " +
+    "masing-masing dan sebutkan bahwa perbedaannya bisa berkaitan dengan periode, definisi, cakupan, " +
+    "atau metode pengukuran yang berbeda. " +
+    "STRUKTUR: lead fakta terpenting; kembangkan tiap sumber yang membawa fakta baru; boleh <h2> untuk " +
+    "bagian Data, Dampak, atau kelompok isu bila bahannya memang cukup; tutup dengan paragraf apa yang " +
+    "belum diketahui dari bahan. Panjang DIBATASI BAHAN — cuplikan sedikit berarti berita pendek, " +
+    "DILARANG mengarang pelengkap. " +
+    '"content" HANYA isi beritanya — tanpa disclaimer/meta apa pun (itu tempatnya di "perluDiverifikasi"). ' +
+    'Pada "perluDiverifikasi" WAJIB ada butir: buka dan baca sumber aslinya satu per satu — AI hanya ' +
+    "membaca cuplikan pendek, bukan halaman penuhnya.",
   "siaran-pers":
     "Bahan ini SIARAN PERS — sudut pandangnya memihak pihak yang merilis. " +
     "Tulis ulang sebagai berita netral, jangan menyalin nada promosinya. " +
@@ -444,6 +466,17 @@ export async function draftArticleFromSource(
     "lakukan liputan/konfirmasi sendiri ke pihak terkait sebelum diterbitkan.";
   if (jenis === "kutipan-media" && !perluDiverifikasi.some((v) => v.toLowerCase().includes("bukan liputan"))) {
     perluDiverifikasi.unshift(PERINGATAN_KUTIPAN_MEDIA);
+  }
+
+  // Backstop yang sama untuk riset web: prompt mewajibkan butir "baca sumber
+  // aslinya", tapi pengujian nyata menunjukkan model melewatkannya — padahal
+  // inilah keterbatasan paling penting dari bahan riset (AI hanya membaca
+  // cuplikan pendek, bukan halaman penuh).
+  const PERINGATAN_RISET_WEB =
+    "Buka dan baca sumber aslinya satu per satu sebelum terbit — draf ini disusun hanya dari " +
+    "cuplikan pendek tiap halaman, bukan isi penuhnya.";
+  if (jenis === "riset-web" && !perluDiverifikasi.some((v) => v.toLowerCase().includes("sumber asli"))) {
+    perluDiverifikasi.unshift(PERINGATAN_RISET_WEB);
   }
 
   let content = data.content.trim();

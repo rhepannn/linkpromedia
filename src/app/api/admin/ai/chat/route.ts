@@ -23,6 +23,7 @@ import {
   type PesanObrolan,
 } from "@/lib/ai";
 import { risetBeritaEksternal } from "@/lib/newsDiscovery";
+import { risetWeb, tavilyTersedia } from "@/lib/webResearch";
 
 // Riset berita = ambil banyak RSS (batas waktu 8 dtk/sumber) + AI pengelompokan.
 // Batas bawaan Vercel Hobby (~10 dtk) memotongnya di tengah; 60 dtk adalah
@@ -122,6 +123,43 @@ export async function POST(req: NextRequest) {
           ? `Ini yang sedang ramai soal "${topik}" di ${hasil.sumberBerhasil.length} sumber berita:`
           : `Ini yang sedang ramai di ${hasil.sumberBerhasil.length} sumber berita:`,
         hasil,
+      });
+    }
+
+    // Riset web (Tavily) — mendalami satu topik: pemberitaan + situs resmi.
+    // Seperti news-discovery, tidak butuh artikel yang sedang dibuka.
+    if (klasifikasi.intent === "riset-web") {
+      const topik = typeof klasifikasi.topik === "string" ? klasifikasi.topik.trim() : "";
+      if (!topik) {
+        return NextResponse.json({
+          tipe: "obrolan",
+          balasan: "Topik apa yang mau diriset? Sebutkan topiknya, misalnya: \"riset topik harga beras\".",
+        });
+      }
+      if (!tavilyTersedia()) {
+        return NextResponse.json({
+          tipe: "obrolan",
+          balasan:
+            "Fitur riset web belum aktif — kunci API Tavily belum dipasang. Minta admin mendaftar " +
+            "gratis di tavily.com, lalu isi TAVILY_API_KEY di pengaturan environment (Vercel: " +
+            "Settings → Environment Variables) dan deploy ulang.",
+        });
+      }
+
+      const hasil = await risetWeb(topik);
+      if (hasil.sumber.length === 0) {
+        return NextResponse.json({
+          tipe: "obrolan",
+          balasan: `Saya tidak menemukan sumber yang cukup soal "${topik}". Coba kata kunci yang lebih spesifik.`,
+        });
+      }
+
+      return NextResponse.json({
+        tipe: "riset-web",
+        balasan:
+          `Ini hasil riset soal "${topik}" — ${hasil.sumber.length} sumber` +
+          (hasil.jumlahResmi > 0 ? `, ${hasil.jumlahResmi} di antaranya situs resmi:` : ":"),
+        hasil: { topik, ...hasil },
       });
     }
 
