@@ -1,9 +1,12 @@
 /**
  * Rantai penyedia AI teks — supaya kuota gratis tidak jadi titik mati tunggal.
  *
- * Urutan: Groq (utama, teruji) → Cerebras (model llama-3.3-70b yang SAMA,
- * jadi perilaku prompt identik) → Gemini (model beda, cadangan terakhir).
+ * Urutan: Groq (utama, teruji) → Cerebras (gpt-oss-120b — katalog Cerebras
+ * 2026 tidak lagi memuat llama-3.3-70b) → Gemini (cadangan terakhir).
  * Ketiganya memakai API berformat OpenAI, jadi satu pemanggil cukup.
+ * Model cadangan berbeda dari model utama — seluruh aturan keras (anti
+ * halusinasi, atribusi) tetap ditegakkan lewat prompt + backstop kode,
+ * bukan bergantung pada model tertentu.
  *
  * Aturan pindah penyedia:
  * - 429 (kuota habis) / 5xx / gangguan jaringan → coba penyedia berikutnya.
@@ -35,13 +38,16 @@ const RANTAI_PENYEDIA: PenyediaAi[] = [
   {
     nama: "Cerebras",
     url: "https://api.cerebras.ai/v1/chat/completions",
-    model: "llama-3.3-70b",
+    model: "gpt-oss-120b",
     kunciEnv: "CEREBRAS_API_KEY",
   },
   {
     nama: "Gemini",
     url: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-    model: "gemini-2.0-flash",
+    // Alias "latest", bukan versi terpaku: versi lama ditutup bergiliran
+    // untuk akun baru (2.0 dan 2.5 sama-sama terbukti ditolak, Agu 2026) —
+    // alias ini selalu menunjuk model flash yang sedang berlaku
+    model: "gemini-flash-latest",
     kunciEnv: "GEMINI_API_KEY",
   },
 ];
