@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getValidUserId } from "@/lib/sessionUser";
 import { buatIlustrasi } from "@/lib/aiImage";
+import { pesanErrorAi } from "@/lib/ai";
 import { logActivity } from "@/lib/activityLog";
 
 // Dua panggilan berantai (Groq menyusun prompt + generator merender gambar)
@@ -47,7 +48,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(hasil);
   } catch (err) {
     console.error("AI gambar error:", err);
-    const pesan = err instanceof Error ? err.message : "Gagal membuat ilustrasi.";
-    return NextResponse.json({ error: pesan }, { status: 502 });
+    // Error kuota Groq datang berbahasa Inggris mentah — jangan diteruskan
+    const pesanKuota = pesanErrorAi(err);
+    const pesan = pesanKuota ?? (err instanceof Error ? err.message : "Gagal membuat ilustrasi.");
+    return NextResponse.json({ error: pesan }, { status: pesanKuota ? 429 : 502 });
   }
 }

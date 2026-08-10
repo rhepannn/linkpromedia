@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { buatNaskahVideo } from "@/lib/videoScript";
+import { pesanErrorAi } from "@/lib/ai";
 
 // Panggilan AI atas artikel panjang bisa melewati batas bawaan Vercel Hobby
 // (~10 dtk); 60 dtk = maksimum Hobby.
@@ -38,6 +39,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ naskah });
   } catch (err) {
     console.error("AI video script error:", err);
-    return NextResponse.json({ error: "Gagal menyusun naskah video" }, { status: 500 });
+    const pesanKuota = pesanErrorAi(err);
+    return NextResponse.json(
+      { error: pesanKuota ?? "Gagal menyusun naskah video" },
+      { status: pesanKuota ? 429 : 500 }
+    );
   }
 }

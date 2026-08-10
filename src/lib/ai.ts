@@ -16,6 +16,22 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
+/**
+ * Pesan ramah untuk error kuota AI — atau null bila bukan soal kuota.
+ * Groq gratis dibatasi per-menit DAN per-hari (TPD); tanpa ini pengguna
+ * hanya melihat "Gagal memproses permintaan" yang tidak menjelaskan apa-apa,
+ * padahal kejadiannya rutin begitu pemakaian harian ramai.
+ */
+export function pesanErrorAi(err: unknown): string | null {
+  if (typeof err === "object" && err !== null && (err as { status?: number }).status === 429) {
+    return (
+      "Kuota gratis layanan AI sedang habis untuk saat ini. Coba lagi beberapa menit lagi — " +
+      "kalau masih gagal, kuota hariannya pulih besok."
+    );
+  }
+  return null;
+}
+
 export async function askJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
   const res = await getGroq().chat.completions.create({
     model: MODEL,

@@ -81,13 +81,36 @@ export function buatRampaPrimer(hexDasar: string): RampaPrimer {
     const sFinal = Number(langkah) <= 100 ? Math.min(s, 65) : s;
     rampa[langkah as keyof RampaPrimer] = hslKeHex({ h, s: sFinal, l });
   }
+
+  // Jaminan keras, bukan sekadar kurva: teks putih di atas 600 (tombol,
+  // badge kategori) WAJIB ≥ 4.5:1. Hijau/kuning neon sangat luminan sehingga
+  // kurva bawaan bisa meleset tipis (terukur 4.4996 pada #39ff14) — gelapkan
+  // 600 selangkah demi selangkah sampai lolos, langkah lain tidak disentuh.
+  let l600 = KURVA_TERANG["600"];
+  while (rasioKontras("#ffffff", rampa["600"]) < 4.5 && l600 > 8) {
+    l600 -= 1;
+    rampa["600"] = hslKeHex({ h, s, l: l600 });
+  }
   return rampa;
 }
 
-/** Teks gelap pekat senada untuk dipakai DI ATAS warna aksen (badge) */
+/**
+ * Teks senada untuk dipakai DI ATAS warna aksen (badge). Normalnya versi
+ * gelap pekat; tapi kalau aksennya sendiri gelap (mis. hitam/navy) versi
+ * gelap tidak terbaca (terukur 1.23:1 pada aksen hitam) — beralih ke versi
+ * terang senada supaya keterbacaan terjamin untuk aksen apa pun.
+ */
 export function turunkanAksenText(hexAksen: string): string {
   const { h, s } = hexKeHsl(hexAksen);
-  return hslKeHex({ h, s: Math.min(s, 90), l: 11 });
+  const gelap = hslKeHex({ h, s: Math.min(s, 90), l: 8 });
+  // Versi gelap dipertahankan selama lolos (estetika badge bawaan); kalau
+  // tidak, pakai kandidat dengan kontras TERTINGGI — aksen abu-abu tengah
+  // tidak bisa mencapai 4.5 dari dua arah, jadi "yang terbaik" adalah
+  // jaminan maksimal yang mungkin, dan halaman Pengaturan tetap menampilkan
+  // peringatan kontras kepada admin untuk kasus seperti itu.
+  if (rasioKontras(gelap, hexAksen) >= 4.5) return gelap;
+  const terang = hslKeHex({ h, s: Math.min(s, 60), l: 96 });
+  return rasioKontras(terang, hexAksen) > rasioKontras(gelap, hexAksen) ? terang : gelap;
 }
 
 /** Luminansi relatif WCAG */

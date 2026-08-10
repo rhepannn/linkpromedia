@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { draftArticleFromSource, suggestCategory, type JenisBahan } from "@/lib/ai";
+import { draftArticleFromSource, suggestCategory, pesanErrorAi, type JenisBahan } from "@/lib/ai";
 import { getSessionActor } from "@/lib/sessionRole";
 import { prisma } from "@/lib/prisma";
 
@@ -68,6 +68,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ draf, kategori });
   } catch (err) {
     console.error("AI draft error:", err);
-    return NextResponse.json({ error: "Gagal menyusun draf artikel" }, { status: 500 });
+    const pesanKuota = pesanErrorAi(err);
+    return NextResponse.json(
+      { error: pesanKuota ?? "Gagal menyusun draf artikel" },
+      { status: pesanKuota ? 429 : 500 }
+    );
   }
 }

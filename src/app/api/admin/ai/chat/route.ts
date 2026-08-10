@@ -19,6 +19,7 @@ import {
   checkFacts,
   reviewWriting,
   obrolanBebas,
+  pesanErrorAi,
   type BahasaTarget,
   type PesanObrolan,
 } from "@/lib/ai";
@@ -289,6 +290,12 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     console.error("AI chat error:", err);
+    // Kuota habis dijawab sebagai balasan chat biasa (bukan error merah) —
+    // pengguna tahu persis harus apa, dan chat tetap terasa hidup
+    const pesanKuota = pesanErrorAi(err);
+    if (pesanKuota) {
+      return NextResponse.json({ tipe: "obrolan", balasan: pesanKuota });
+    }
     return NextResponse.json({ error: "Gagal memproses permintaan" }, { status: 500 });
   }
 }

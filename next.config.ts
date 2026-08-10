@@ -30,8 +30,12 @@ const nextConfig: NextConfig = {
             value: "nosniff",
           },
           {
+            // SAMEORIGIN, bukan DENY: pratinjau langsung di /admin/pengaturan
+            // meng-iframe halaman "/" (same-origin). DENY memblokir SEMUA
+            // framing termasuk milik sendiri, jadi pratinjau tampil kosong di
+            // produksi. Clickjacking dari situs lain tetap tertangkal.
             key: "X-Frame-Options",
-            value: "DENY",
+            value: "SAMEORIGIN",
           },
           {
             key: "Referrer-Policy",
