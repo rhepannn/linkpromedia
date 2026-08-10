@@ -23,13 +23,46 @@ export function stripHtml(html: string): string {
  * padahal kejadiannya rutin begitu pemakaian harian ramai.
  */
 export function pesanErrorAi(err: unknown): string | null {
-  if (typeof err === "object" && err !== null && (err as { status?: number }).status === 429) {
+  if (!(typeof err === "object" && err !== null && (err as { status?: number }).status === 429)) {
+    return null;
+  }
+
+  // Groq menyebutkan sisa tunggunya di teks errornya sendiri, mis.
+  // "Please try again in 2m21.696s" / "in 7.66s" / "in 1h2m" — diparse dan
+  // diterjemahkan jadi durasi + perkiraan pukul (WIB) supaya redaksi tahu
+  // persis kapan bisa kembali, bukan cuma "coba lagi nanti".
+  const e = err as { error?: { error?: { message?: string } }; message?: string };
+  const teks = e.error?.error?.message ?? e.message ?? "";
+  const m = teks.match(/try again in\s+(?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i);
+
+  if (m && (m[1] || m[2] || m[3])) {
+    const jam = Number(m[1] ?? 0);
+    const menit = Number(m[2] ?? 0);
+    const detik = Math.ceil(Number(m[3] ?? 0));
+    const totalDetik = jam * 3600 + menit * 60 + detik;
+    const bagian = [
+      jam > 0 && `${jam} jam`,
+      menit > 0 && `${menit} menit`,
+      // Detik hanya ditampilkan untuk tunggu pendek — "1 jam 3 detik" cuma bising
+      jam === 0 && detik > 0 && `${detik} detik`,
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const pukul = new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(Date.now() + totalDetik * 1000));
     return (
-      "Kuota gratis layanan AI sedang habis untuk saat ini. Coba lagi beberapa menit lagi — " +
-      "kalau masih gagal, kuota hariannya pulih besok."
+      `Kuota gratis layanan AI sedang habis untuk saat ini. ` +
+      `Perkiraan bisa dipakai lagi dalam ${bagian} — sekitar pukul ${pukul} WIB.`
     );
   }
-  return null;
+
+  return (
+    "Kuota gratis layanan AI sedang habis untuk saat ini. Coba lagi beberapa menit lagi — " +
+    "kalau masih gagal, kuota hariannya pulih besok."
+  );
 }
 
 export async function askJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
