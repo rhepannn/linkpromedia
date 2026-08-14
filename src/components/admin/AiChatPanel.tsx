@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { kirimDraftSiapIsi } from "@/lib/draftHandoff";
+import { sisipkanTautanSumber } from "@/lib/sourceLinks";
 
 interface Props {
   title?: string;
@@ -751,8 +752,17 @@ function HasilRenderer({
           setErrorDraf(data.error ?? "Gagal menyusun draf dari topik ini.");
           return;
         }
+        // Tautan balik ke tiap media ditempel di sini (bukan diminta ke AI):
+        // URL-nya persis yang sudah kita pegang, tidak mungkin salah ketik —
+        // memperkuat posisi sebagai perujuk yang mengarahkan traffic balik,
+        // bukan sekadar menyalin (lihat sourceLinks.ts)
+        const kontenDenganSumber = sisipkanTautanSumber(
+          data.draf.content,
+          t.berita.map((b) => ({ nama: b.sumber, url: b.url }))
+        );
         kirimDraftSiapIsi({
           ...data.draf,
+          content: kontenDenganSumber,
           ...(data.kategori && { categoryId: data.kategori.id, categoryNama: data.kategori.nama }),
         });
         router.push("/admin/artikel/baru");
@@ -900,8 +910,13 @@ function HasilRenderer({
           setErrorDraf(data.error ?? "Gagal menyusun draf dari hasil riset ini.");
           return;
         }
+        const kontenDenganSumber = sisipkanTautanSumber(
+          data.draf.content,
+          rs.sumber.map((s) => ({ nama: s.domain, url: s.url }))
+        );
         kirimDraftSiapIsi({
           ...data.draf,
+          content: kontenDenganSumber,
           ...(data.kategori && { categoryId: data.kategori.id, categoryNama: data.kategori.nama }),
         });
         router.push("/admin/artikel/baru");

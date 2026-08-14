@@ -395,6 +395,15 @@ html {
 
 .article-content a:hover { text-decoration-thickness: 2px; }
 
+/* Pemisah sebelum blok "Sumber:" (tautan balik otomatis ke media asal pada
+   draf kutipan-media/riset-web) — tanpa ini garis bawaan browser tidak
+   mengikuti warna tema dan terasa asing di tengah artikel */
+.article-content hr {
+  border: none;
+  border-top: 1px solid var(--color-divider);
+  margin: 2rem 0 1.25rem;
+}
+
 .article-content img {
   border-radius: 0.75rem;
   margin: 1.5rem 0;
