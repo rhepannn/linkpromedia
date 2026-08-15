@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { kirimDraftSiapIsi } from "@/lib/draftHandoff";
+import { sanitizeHtml } from "@/lib/sanitize";
 import { sisipkanTautanSumber } from "@/lib/sourceLinks";
 
 interface Props {
@@ -664,7 +665,7 @@ function HasilRenderer({
         <p className={`font-semibold text-gray-700 ${isi}`}>{t.title}</p>
         <div
           className={`text-gray-600 [&_p]:mb-1.5 ${isi}`}
-          dangerouslySetInnerHTML={{ __html: t.content }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(t.content) }}
         />
         <p className={`text-gray-400 pt-1 ${ket}`}>
           Ini belum disimpan ke mana pun — salin manual kalau mau dijadikan artikel terpisah.

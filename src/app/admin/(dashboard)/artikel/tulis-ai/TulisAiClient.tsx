@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Category } from "@/types";
 import { ambilBahanDraf } from "@/lib/draftHandoff";
+import { sanitizeHtml } from "@/lib/sanitize";
 
 interface Draft {
   title: string;
@@ -225,7 +226,7 @@ export default function TulisAiClient({ categories }: { categories: Category[] }
             <p className="text-xs text-gray-400 mb-1">Isi</p>
             <div
               className="article-content border border-gray-100 rounded-lg p-3 max-h-72 overflow-y-auto"
-              dangerouslySetInnerHTML={{ __html: draf.content }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(draf.content) }}
             />
           </div>
 
