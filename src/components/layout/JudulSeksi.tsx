@@ -6,6 +6,12 @@ interface Props {
   rubrik?: string;
   /** Keterangan kecil di samping judul, mis. "· favorit kamu" */
   keterangan?: string;
+  /**
+   * Render keterangan dalam keadaan tersembunyi, untuk diungkap klien setelah
+   * hidrasi (lihat KategoriPersonalisasi). Dipakai agar label "favorit kamu"
+   * bisa ikut di HTML statis tanpa membocorkan preferensi ke semua pembaca.
+   */
+  keteranganTersembunyi?: boolean;
   /** Kalau diisi, muncul tautan "Lihat semua" di ujung kanan */
   href?: string;
 }
@@ -20,12 +26,25 @@ interface Props {
  * berwarna rubrik + judul. Perbedaan penting antar seksi dibawa oleh
  * isinya, bukan oleh hiasan judulnya.
  */
-export default function JudulSeksi({ children, rubrik, keterangan, href }: Props) {
+export default function JudulSeksi({
+  children,
+  rubrik,
+  keterangan,
+  keteranganTersembunyi,
+  href,
+}: Props) {
   return (
     <div className="flex items-center justify-between gap-4 mb-5">
       <h2 data-rubrik={rubrik} className="garis-rubrik judul-besar text-heading flex items-baseline gap-2">
         {children}
-        {keterangan && <span className="meta font-normal">{keterangan}</span>}
+        {keterangan && (
+          <span
+            data-label-favorit={keteranganTersembunyi ? "" : undefined}
+            className={`meta font-normal${keteranganTersembunyi ? " hidden" : ""}`}
+          >
+            {keterangan}
+          </span>
+        )}
       </h2>
       {href && (
         <Link
