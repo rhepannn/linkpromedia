@@ -52,13 +52,17 @@ export default function AdminSidebar({ role }: Props) {
             // Saat menyempit hanya ikon yang tersisa, jadi nama menunya
             // dipindah ke tooltip agar tetap bisa dikenali
             title={tertutup ? item.label : undefined}
-            className={`sidebar-tautan flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              isActive(item.href)
-                ? "bg-primary-50 text-primary-600"
-                : "text-text-muted hover:bg-surface hover:text-heading"
+            aria-current={isActive(item.href) ? "page" : undefined}
+            // Warna hover diurus globals.css (.sidebar-tautan), bukan kelas
+            // hover: di sini — nilainya harus beda antara tema terang & gelap,
+            // sementara token primary Tailwind tidak punya varian gelap.
+            className={`sidebar-tautan flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium ${
+              isActive(item.href) ? "bg-primary-50 text-primary-600" : "text-text-muted"
             }`}
           >
-            <span className={`flex-shrink-0 ${isActive(item.href) ? "text-primary-600" : "text-text-muted"}`}>
+            {/* Tanpa warna sendiri saat tidak aktif, supaya ikut mewarisi warna
+                biru dari tautan induknya begitu kursor lewat */}
+            <span className={`flex-shrink-0 ${isActive(item.href) ? "text-primary-600" : ""}`}>
               {item.icon}
             </span>
             <span className="sidebar-teks" aria-hidden={tertutup}>{item.label}</span>
@@ -72,9 +76,9 @@ export default function AdminSidebar({ role }: Props) {
           href="/"
           target="_blank"
           title={tertutup ? "Lihat Website" : undefined}
-          className="sidebar-tautan flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-muted hover:bg-surface hover:text-heading transition-colors"
+          className="sidebar-tautan flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-text-muted"
         >
-          <svg className="w-5 h-5 text-text-muted flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
           <span className="sidebar-teks" aria-hidden={tertutup}>Lihat Website</span>

@@ -482,9 +482,52 @@ html {
   transition: opacity 100ms ease, max-width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* Warna aksen sidebar. Dipisah jadi variabel karena --color-primary-600 TIDAK
+   ikut didefinisikan ulang di tema gelap (tema gelap menanganinya lewat
+   penimpaan kelas seperti .text-primary-600), jadi memakai token itu langsung
+   akan menghasilkan biru terang yang menyilaukan di latar gelap. */
+:root {
+  --sidebar-aksen: var(--color-primary-600);
+  --sidebar-hover-bg: color-mix(in srgb, var(--color-primary-600) 7%, transparent);
+}
+:root[data-theme="dark"] {
+  --sidebar-aksen: #6899cf;
+  --sidebar-hover-bg: color-mix(in srgb, #6899cf 13%, transparent);
+}
+
 .sidebar-tautan {
+  position: relative;
   transition: background-color 150ms ease, color 150ms ease, gap 220ms ease, padding 220ms ease;
 }
+
+/* Hover memakai biru yang sama dengan menu aktif, hanya kadarnya lebih rendah —
+   supaya terasa sebagai "pratinjau" pilihan, bukan warna lain yang tidak
+   berhubungan. Menu yang SEDANG aktif dikecualikan: latarnya sudah penuh,
+   menimpanya lagi saat kursor lewat justru membuatnya berkedip. */
+.sidebar-tautan:not([aria-current="page"]):hover {
+  background-color: var(--sidebar-hover-bg);
+  color: var(--sidebar-aksen);
+}
+
+/* Garis penanda di tepi kiri yang tumbuh dari tengah saat disentuh kursor.
+   Tinggi yang dianimasikan, bukan posisi, supaya tidak ada satu piksel pun
+   tata letak yang bergeser. */
+.sidebar-tautan::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 0;
+  transform: translateY(-50%);
+  border-radius: 0 3px 3px 0;
+  background-color: var(--sidebar-aksen);
+  transition: height 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-tautan:not([aria-current="page"]):hover::before {
+  height: 55%;
+}
+
 :root[data-sidebar="tutup"] .sidebar-tautan {
   justify-content: center;
   gap: 0;
@@ -495,7 +538,8 @@ html {
 @media (prefers-reduced-motion: reduce) {
   .sidebar-admin,
   .sidebar-teks,
-  .sidebar-tautan {
+  .sidebar-tautan,
+  .sidebar-tautan::before {
     transition: none;
   }
 }
