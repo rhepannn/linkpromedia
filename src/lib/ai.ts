@@ -425,7 +425,13 @@ const PANDUAN_BAHAN: Record<JenisBahan, string> = {
     "Bahan ini CATATAN LAPANGAN wartawan. Susun jadi berita utuh dengan alur yang runut.",
   data:
     "Bahan ini DATA/ANGKA. Sajikan angkanya dengan akurat dan jelaskan artinya bagi pembaca. " +
-    "Dilarang menambah analisis atau prediksi yang tidak ada dalam data.",
+    "Dilarang menambah analisis atau prediksi yang tidak ada dalam data. " +
+    "KALAU bahan menyediakan angka pembanding (periode sebelumnya, target, atau data sejenis dari " +
+    "pihak lain), rangkai penjelasannya: sebutkan nilainya, lalu bandingkan (naik/turun/stagnan dan " +
+    "selisihnya), baru maknanya bagi pembaca — TANPA menambahkan penyebab atau dampak yang tidak " +
+    "disebutkan di bahan. Kalau bahan TIDAK menyediakan pembanding, sajikan angkanya apa adanya dan " +
+    "jangan mengarang tren. Setiap angka WAJIB disertai periode/waktu datanya persis seperti di bahan " +
+    "— kalau bahan tidak menyebut periode, jangan menyiratkan datanya \"terbaru\" atau \"saat ini\".",
   dokumen:
     "Bahan ini DOKUMEN RESMI/LAPORAN. Sarikan poin pentingnya jadi berita yang mudah dipahami pembaca umum. " +
     "WAJIB cantumkan NOMOR DOKUMEN/PUTUSAN/PERKARA ITU SENDIRI (yang jadi identitas resmi bahan ini, biasanya " +
@@ -470,8 +476,11 @@ export async function draftArticleFromSource(
       "  sejauh bahan menyediakannya. Hindari pembukaan umum yang berputar-putar.",
       "- ANGKA: setiap angka penting ditulis lengkap dengan satuan, periode, dan sumbernya",
       "  sebagaimana tertera di bahan. Perbandingan/tren hanya boleh ditulis bila bahan memuatnya.",
+      "  Kalau bahan tidak menyebut periode datanya, jangan menyiratkan datanya \"terbaru\"/\"saat ini\".",
       "- FAKTA vs PENILAIAN: penilaian, prediksi, atau opini yang ada di bahan WAJIB beratribusi",
-      "  ('menurut...', 'dinilai...', 'data menunjukkan...') — jangan ditulis sebagai fakta pasti.",
+      "  ('menurut...', 'dinilai...', 'data menunjukkan...', 'diperkirakan...') — jangan ditulis sebagai",
+      "  fakta pasti. Kalau bahan sendiri belum menyimpulkan sesuatu, jangan menyimpulkannya untuk bahan —",
+      "  tulis 'belum ada kejelasan dari bahan mengenai...' dan catat di \"perluDiverifikasi\".",
       "- Bahasa Indonesia baku sesuai kaidah jurnalistik.",
       "- Kalimat pendek dan lugas. Netral, tanpa opini penulis.",
       '- "content" berupa HTML sederhana: hanya tag <p>, dan <h2> bila perlu subjudul.',
