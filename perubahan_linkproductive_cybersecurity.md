@@ -12,8 +12,9 @@
 | Region function Vercel dipindah ke Singapura | Perbaikan — performa | 14 Agustus 2026 |
 | Catatan audit & studi kasus downtime | Dokumentasi | 14 Agustus 2026 |
 
-> **Status: belum di-deploy.** Seluruh perubahan di bawah masih berupa perubahan lokal yang
-> belum di-commit/push. Situs live masih memakai kode lama sampai `git push` ke `main`.
+> **Status: sudah di-deploy & terverifikasi di produksi (15 Agustus 2026).**
+> Commit `45459a2` (keamanan) dan `879c4b0` (region) sudah ter-push ke `main` dan aktif di
+> `media.linkproductive.com`. Hasil pengukuran ada di bagian Verifikasi.
 
 ---
 
@@ -144,9 +145,17 @@ TTFB 5,6s                                  ← server memproses (5,5 dtk)
 
 **Perbaikan:** `"regions": ["sin1"]` ditambahkan ke `vercel.json`.
 
-**Perlu diverifikasi setelah deploy:** paket Vercel Hobby membatasi jumlah region. Cek
-header `X-Vercel-Id` — kalau masih menampilkan `iad1`, setelan ini harus diubah lewat
-dashboard Vercel (Project Settings → Functions → Function Region), bukan lewat `vercel.json`.
+**Hasil setelah deploy — berhasil.** Sempat dikhawatirkan paket Hobby akan mengabaikan
+setelan `regions` di `vercel.json` dan mengharuskan perubahan lewat dashboard, tetapi
+ternyata dihormati. Header berubah dari `X-Vercel-Id: sin1::iad1::` menjadi
+`sin1::sin1::` — function kini sekamar dengan database.
+
+| `/api/health` (hanya `SELECT 1`) | Sebelum | Sesudah |
+| --- | --- | --- |
+| TTFB | 1,55 / 1,58 / 1,61 dtk | 0,26 / 0,36 / 0,37 / 0,58 / 0,62 dtk |
+
+Turun sekitar 3–6 kali lipat. Karena setiap aksi tombol membayar ongkos ini per kueri,
+tombol admin yang menjalankan beberapa kueri berurutan ikut terpangkas berlipat.
 
 **Berkas:** `vercel.json`
 
@@ -173,6 +182,26 @@ dashboard Vercel (Project Settings → Functions → Function Region), bukan lew
 - Diuji di browser terhadap build produksi: homepage, halaman login admin, dan halaman
   artikel (termasuk gambar dari Supabase/Cloudinary) dimuat tanpa pelanggaran CSP.
 - Header CSP dikonfirmasi terkirim pada respons.
+
+### Verifikasi di produksi (15 Agustus 2026, setelah deploy)
+
+Diukur langsung ke `media.linkproductive.com`:
+
+| | Sebelum deploy | Sesudah deploy |
+| --- | --- | --- |
+| Region function (`X-Vercel-Id`) | `sin1::iad1::` | `sin1::sin1::` |
+| `/api/health` (jalur tombol) | 1,55–1,72 dtk | 0,26–0,62 dtk |
+| Halaman utama | `MISS`, 5,6 dtk | `HIT`, 0,27–0,35 dtk |
+| Halaman artikel | `HIT`, 0,49 dtk | `HIT`, 0,50 dtk |
+| Header CSP | tidak ada | aktif |
+
+CSP yang terkirim di produksi sudah benar — `script-src 'self' 'unsafe-inline'` **tanpa**
+`'unsafe-eval'`, membuktikan cabang `NODE_ENV === "production"` bekerja dan kelonggaran
+dev tidak ikut ter-deploy.
+
+Catatan: halaman utama sempat masih `MISS` beberapa saat setelah push. Ternyata commit
+`fcefd6a` (halaman utama statis/ISR) sudah ter-push sebelumnya tetapi belum pernah
+ter-deploy; push kali ini yang akhirnya memicu deployment berisi perbaikan itu.
 
 ### Catatan soal uji beban
 
