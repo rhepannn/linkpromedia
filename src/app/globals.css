@@ -453,25 +453,49 @@ html {
    pindah halaman — masalah yang pasti muncul kalau lebarnya diatur useEffect. */
 .sidebar-admin {
   width: 15rem;
-  transition: width 200ms ease;
+  transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 :root[data-sidebar="tutup"] .sidebar-admin {
   width: 4.5rem;
 }
 
-/* Teks menu, label merek, dan tombol "Lihat Website" ikut disembunyikan —
-   yang tersisa hanya ikon supaya navigasi tetap bisa dipakai saat menyempit */
+/* Teks menu, label merek, dan tombol "Lihat Website" ikut mengecil & memudar —
+   BUKAN display:none. display:none tidak bisa dianimasikan sama sekali, jadi
+   teksnya menghilang seketika padahal lebar sidebar-nya masih animasi 220ms —
+   dua gerakan yang tidak sinkron itulah yang terasa "patah/kaku". Dengan
+   max-width + opacity, teks ikut menyusut & pudar SEIRING lebar sidebar
+   mengecil, lalu ikonnya sendiri pelan-pelan bergeser ke tengah karena
+   justify-content:center dihitung ulang tiap frame selama animasi berjalan. */
+.sidebar-teks {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 1;
+  max-width: 12rem;
+  transition: opacity 160ms ease, max-width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
 :root[data-sidebar="tutup"] .sidebar-teks {
-  display: none;
+  opacity: 0;
+  max-width: 0;
+  /* Memudar lebih cepat dari menyempitnya, supaya tidak ada pecahan huruf
+     yang sempat terlihat separuh saat lebarnya baru mulai mengecil */
+  transition: opacity 100ms ease, max-width 220ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-tautan {
+  transition: background-color 150ms ease, color 150ms ease, gap 220ms ease, padding 220ms ease;
 }
 :root[data-sidebar="tutup"] .sidebar-tautan {
   justify-content: center;
+  gap: 0;
   padding-left: 0;
   padding-right: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-admin {
+  .sidebar-admin,
+  .sidebar-teks,
+  .sidebar-tautan {
     transition: none;
   }
 }
